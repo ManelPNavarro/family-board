@@ -26,7 +26,7 @@ async function accessToken(rawCredentials) {
       grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
       assertion,
     }),
-    redirect: 'error',
+    redirect: 'manual',
     signal: AbortSignal.timeout(8_000),
   });
   if (!response.ok) throw new Error('Google token unavailable');
@@ -91,7 +91,7 @@ export async function getFamilyCalendar(env, now = new Date()) {
   for (let page = 0; page < 8; page += 1) {
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
-      redirect: 'error',
+      redirect: 'manual',
       signal: AbortSignal.timeout(8_000),
     });
     if (!response.ok) {

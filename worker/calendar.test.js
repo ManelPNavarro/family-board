@@ -15,6 +15,7 @@ test('lee solo el calendario configurado y agrupa eventos en días de Madrid', a
   };
 
   t.mock.method(globalThis, 'fetch', async (url, options) => {
+    assert.equal(options.redirect, 'manual');
     if (url === 'https://oauth2.googleapis.com/token') {
       const { payload } = await jwtVerify(options.body.get('assertion'), publicKey, {
         issuer: credentials.client_email,
