@@ -28,8 +28,8 @@ export function TaskOverview({ today }) {
   return (
     <div className="dashboard-task-grid">
       {[
-        { id: 'today', title: 'Tasques per avui', empty: 'No hi ha tasques pendents per avui.' },
-        { id: 'week', title: 'Tasques aquesta setmana', empty: 'No hi ha tasques pendents aquesta setmana.' },
+        { id: 'today', title: 'Tasques avui', empty: 'No hi ha tasques pendents per avui.' },
+        { id: 'week', title: 'Tasques setmana', empty: 'No hi ha tasques pendents aquesta setmana.' },
       ].map(({ id, title, empty }) => (
         <section className="card task-overview" key={id} aria-labelledby={`task-overview-${id}`}>
           <header className="card-header">

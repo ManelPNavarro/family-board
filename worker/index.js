@@ -107,6 +107,9 @@ export default {
     for (const [name, value] of Object.entries(headers)) {
       response.headers.set(name, value);
     }
+    if ((response.status === 200 || response.status === 304) && /^\/assets\/[^/]+-[\w-]{8}\.(?:css|js)$/.test(pathname)) {
+      response.headers.set('Cache-Control', 'private, no-cache');
+    }
     return response;
   },
 };

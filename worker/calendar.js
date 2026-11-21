@@ -1,9 +1,11 @@
 import { importPKCS8, SignJWT } from 'jose';
-import { calendarDays, timeZone } from '../shared/dates.js';
+import { calendarDays, dayKey, timeZone } from '../shared/dates.js';
 
 const tokenUrl = 'https://oauth2.googleapis.com/token';
 const calendarScope = 'https://www.googleapis.com/auth/calendar.events.readonly';
+const calendarFreshness = 60_000;
 let cachedToken;
+let calendarSnapshot;
 
 async function accessToken(rawCredentials) {
   const now = Date.now();
@@ -72,10 +74,18 @@ export function eventsByDay(events, days) {
 }
 
 export async function getFamilyCalendar(env, now = new Date()) {
+  const credentials = env.GOOGLE_CALENDAR_SERVICE_ACCOUNT;
+  const calendarId = env.GOOGLE_CALENDAR_ID.trim();
+  const date = dayKey(now);
+  const timestamp = now.getTime();
+  if (calendarSnapshot?.calendarId === calendarId && calendarSnapshot.credentials === credentials &&
+      calendarSnapshot.date === date && timestamp < calendarSnapshot.expires) {
+    return calendarSnapshot.data;
+  }
+
   const days = calendarDays(now, 8);
-  const token = await accessToken(env.GOOGLE_CALENDAR_SERVICE_ACCOUNT);
-  const calendarId = encodeURIComponent(env.GOOGLE_CALENDAR_ID.trim());
-  const url = new URL(`https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`);
+  const token = await accessToken(credentials);
+  const url = new URL(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`);
   url.search = new URLSearchParams({
     timeMin: days[0].start,
     timeMax: days.at(-1).start,
@@ -101,7 +111,11 @@ export async function getFamilyCalendar(env, now = new Date()) {
 
     const { items = [], nextPageToken } = await response.json();
     events.push(...items);
-    if (!nextPageToken) return { days: eventsByDay(events, days) };
+    if (!nextPageToken) {
+      const data = { days: eventsByDay(events, days) };
+      calendarSnapshot = { calendarId, credentials, date, expires: timestamp + calendarFreshness, data };
+      return data;
+    }
     url.searchParams.set('pageToken', nextPageToken);
   }
   throw new Error('Too many Google Calendar pages');

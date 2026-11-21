@@ -14,7 +14,7 @@ test('reads only the configured calendar and groups events by day in Madrid', as
     GOOGLE_CALENDAR_SERVICE_ACCOUNT: JSON.stringify(credentials),
   };
 
-  t.mock.method(globalThis, 'fetch', async (url, options) => {
+  const fetchGoogle = t.mock.method(globalThis, 'fetch', async (url, options) => {
     assert.equal(options.redirect, 'manual');
     if (url === 'https://oauth2.googleapis.com/token') {
       const { payload } = await jwtVerify(options.body.get('assertion'), publicKey, {
@@ -63,4 +63,9 @@ test('reads only the configured calendar and groups events by day in Madrid', as
     date: '2026-10-26',
     events: [{ id: 'private', title: 'Ocupat', start: '2026-10-25T23:30:00+01:00', continues: true }],
   });
+
+  assert.deepEqual(await getFamilyCalendar(env, new Date('2026-10-24T22:30:59Z')), { days });
+  assert.equal(fetchGoogle.mock.callCount(), 3);
+  assert.deepEqual(await getFamilyCalendar(env, new Date('2026-10-24T22:31:00Z')), { days });
+  assert.equal(fetchGoogle.mock.callCount(), 5);
 });

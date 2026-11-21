@@ -12,7 +12,9 @@ test('the Worker requires a valid Access session for the dashboard and API', asy
     assert.equal(String(url), `${issuer}/cdn-cgi/access/certs`);
     return Response.json({ keys: [{ ...key, kid: 'test-key' }] });
   });
-  const assets = t.mock.fn(() => new Response('Panel'));
+  const assets = t.mock.fn((request) => request.headers.get('If-None-Match') === '"test-tag"'
+    ? new Response(null, { status: 304, headers: { ETag: '"test-tag"' } })
+    : new Response('Panel', { headers: { ETag: '"test-tag"' } }));
   const prepare = t.mock.fn(() => ({ first: async () => 1 }));
   const env = {
     ACCESS_ISSUER: issuer,
@@ -41,7 +43,8 @@ test('the Worker requires a valid Access session for the dashboard and API', asy
   const valid = await sign(audience);
   const wrongAudience = await sign('another-app');
   const expired = await sign(audience, 1);
-  for (const path of ['/', '/compra/', '/compra.webmanifest', '/assets/app.js', '/api/status', '/api/weather', '/api/calendar', '/api/groceries', '/api/groceries/history', '/api/tasks']) {
+  const bundle = '/assets/main-Abc123_4.js';
+  for (const path of ['/', '/compra/', '/compra.webmanifest', bundle, '/api/status', '/api/weather', '/api/calendar', '/api/groceries', '/api/groceries/history', '/api/tasks']) {
     for (const token of [undefined, 'fake-token', wrongAudience, expired]) {
       const response = await worker.fetch(request(path, token), env);
       assert.equal(response.status, 403);
@@ -54,6 +57,16 @@ test('the Worker requires a valid Access session for the dashboard and API', asy
   const panel = await worker.fetch(request('/', valid), env);
   assert.equal(await panel.text(), 'Panel');
   assert.equal(panel.headers.get('Cache-Control'), 'private, no-store');
+
+  const asset = await worker.fetch(request(bundle, valid), env);
+  assert.equal(asset.headers.get('Cache-Control'), 'private, no-cache');
+  const conditional = request(bundle, valid);
+  conditional.headers.set('If-None-Match', asset.headers.get('ETag'));
+  const unchanged = await worker.fetch(conditional, env);
+  assert.equal(unchanged.status, 304);
+  assert.equal(unchanged.headers.get('Cache-Control'), 'private, no-cache');
+  conditional.headers.delete('Cf-Access-Jwt-Assertion');
+  assert.equal((await worker.fetch(conditional, env)).status, 403);
 
   const calendar = await worker.fetch(request('/api/calendar', valid), env);
   assert.equal(calendar.status, 503);
