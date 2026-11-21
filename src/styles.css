@@ -3,8 +3,8 @@
 :root {
   color-scheme: light;
   font-family: system-ui, sans-serif;
-  background: #f1f5ed;
-  color: #163627;
+  background: #f3f4fa;
+  color: #1e2240;
   font-synthesis: none;
 }
 
@@ -219,7 +219,9 @@ a:focus-visible {
     justify-content: space-between;
     flex-wrap: wrap;
     gap: .55rem 1rem;
-    padding: .65rem max(1rem, 3.25vw);
+    padding: max(.65rem, env(safe-area-inset-top))
+      max(1rem, 3.25vw, env(safe-area-inset-right)) .65rem
+      max(1rem, 3.25vw, env(safe-area-inset-left));
     border-inline-end: 0;
     border-bottom: 1px solid var(--dashboard-border);
   }
@@ -249,47 +251,7 @@ a:focus-visible {
   .agenda-link { gap: .25rem; padding-inline: .2rem; font-size: .8rem; }
 }
 
-.shopping-page {
-  width: min(calc(100% - 2rem), 37rem);
-  margin-inline: auto;
-  padding-top: max(.75rem, env(safe-area-inset-top));
-  padding-bottom: calc(5.75rem + env(safe-area-inset-bottom));
-}
-
-.shopping-back {
-  display: inline-flex;
-  align-items: center;
-  gap: .25rem;
-  min-height: 44px;
-  font-weight: 650;
-  color: #436352;
-}
-
-.shopping-page h1 {
-  font-size: clamp(1.75rem, 6vw, 2.5rem);
-  font-weight: 740;
-  line-height: 1.08;
-  letter-spacing: -.045em;
-}
-
-.shopping-page .groceries {
-  padding: 0;
-  margin-top: .95rem;
-  border: 0;
-  background: transparent;
-}
-
-.grocery-heading { margin-bottom: 1rem; }
-
-.grocery-symbol {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 2.65rem;
-  height: 2.65rem;
-  border-radius: .9rem;
-  background: #dcebd9;
-}
+.grocery-heading h1 { margin-top: 0; }
 
 .grocery-add, .grocery-edit, .grocery-item, .grocery-check, .grocery-actions {
   display: flex;
@@ -300,7 +262,7 @@ a:focus-visible {
 .grocery-edit { width: 100%; padding: .4rem; }
 
 .grocery-add {
-  border: 1px solid #9fb6a3;
+  border: 1px solid #b7b6d0;
   border-radius: .95rem;
   padding: .3rem;
   background: #fff;
@@ -314,10 +276,10 @@ a:focus-visible {
   border-radius: .65rem;
 }
 
-.grocery-edit .grocery-name { border: 1px solid #9fb6a3; }
-.grocery-add input::placeholder { color: #52695a; }
-.grocery-group { margin-top: 1.4rem; }
-.grocery-group h3 {
+.grocery-edit .grocery-name { border: 1px solid #b7b6d0; }
+.grocery-add input::placeholder { color: var(--dashboard-muted); }
+.grocery-group + .grocery-group { margin-top: 1.4rem; }
+.grocery-group h2 {
   display: flex;
   gap: .45rem;
   align-items: center;
@@ -325,13 +287,13 @@ a:focus-visible {
   font-weight: 700;
 }
 
-.grocery-group h3 span {
-  margin-left: auto;
+.grocery-group h2 span {
+  margin-inline-start: auto;
   min-width: 1.65rem;
   padding: .125rem .4rem;
   border-radius: 1rem;
-  background: #e1ecdf;
-  color: #30583f;
+  background: #eeebff;
+  color: #413594;
   font-size: .875rem;
   text-align: center;
   font-variant-numeric: tabular-nums;
@@ -342,16 +304,14 @@ a:focus-visible {
 .grocery-item {
   min-width: 0;
   min-height: 64px;
-  border: 1px solid #b9cdbb;
+  border: 1px solid var(--dashboard-border);
   border-radius: .9rem;
-  background: #fff;
-  box-shadow: 0 2px 0 #16362710;
+  background: #f7f7fc;
 }
 
 .grocery-item-checked {
   min-height: 56px;
-  background: #e9f0e7;
-  box-shadow: none;
+  background: #f4f4f8;
 }
 
 .grocery-check {
@@ -369,7 +329,7 @@ a:focus-visible {
 
 .grocery-check input {
   appearance: auto;
-  accent-color: #216545;
+  accent-color: var(--dashboard-accent);
   width: 1.4rem;
   height: 1.4rem;
   flex: none;
@@ -377,13 +337,13 @@ a:focus-visible {
 
 .grocery-check input:checked + span {
   text-decoration: line-through;
-  color: #486454;
+  color: var(--dashboard-muted);
   font-weight: 500;
 }
 
 .grocery-actions {
-  margin-right: .2rem;
-  border-left: 1px solid #d2dfd2;
+  margin-inline-end: .2rem;
+  border-left: 1px solid var(--dashboard-border);
 }
 
 .groceries button {
@@ -397,26 +357,26 @@ a:focus-visible {
   cursor: pointer;
 }
 
-.grocery-add button { padding-inline: .7rem; background: #163627; color: white; font-weight: 650; }
+.grocery-add button { padding-inline: .7rem; background: var(--dashboard-accent); color: white; font-weight: 650; }
 .groceries button:disabled { opacity: .55; cursor: default; }
-.grocery-item button { color: #436352; }
-.grocery-item button:not(:disabled):hover, .grocery-check:hover { background: #f1f5ed; }
-.groceries :is(input, button):focus-visible { outline: 2px solid #1d6947; outline-offset: 2px; }
+.grocery-item button { color: var(--dashboard-muted); }
+.grocery-item button:not(:disabled):hover, .grocery-check:hover { background: #eeebff; }
+.groceries :is(input, button):focus-visible { outline: 2px solid var(--dashboard-accent); outline-offset: 2px; }
 .groceries .grocery-add input:focus-visible { outline-offset: -2px; }
 
-.grocery-checked { padding-top: .75rem; border-top: 1px solid #c8d9c8; }
-.grocery-empty { margin-top: .65rem; padding: .8rem; color: #486454; }
+.grocery-checked { padding-top: .75rem; border-top: 1px solid var(--dashboard-border); }
+.grocery-empty { margin-top: .65rem; padding: .8rem; color: var(--dashboard-muted); }
 
 .grocery-suggestions {
   margin-top: .35rem;
   padding: .2rem;
-  border: 1px solid #9fb6a3;
+  border: 1px solid #b7b6d0;
   border-radius: .95rem;
   background: #fff;
-  box-shadow: 0 6px 18px #1636271f;
+  box-shadow: 0 6px 18px #1e22401f;
 }
 
-.grocery-suggestions li + li { border-top: 1px solid #d2dfd2; }
+.grocery-suggestions li + li { border-top: 1px solid var(--dashboard-border); }
 
 .grocery-suggestions button {
   width: 100%;
@@ -427,7 +387,7 @@ a:focus-visible {
 }
 
 .grocery-suggestions button:hover, .grocery-suggestions button:focus-visible {
-  background: #e9f0e7;
+  background: #eeebff;
 }
 
 .grocery-produce-toggle {
@@ -452,23 +412,43 @@ a:focus-visible {
 .grocery-edit-fields { flex: 1; min-width: 0; }
 .grocery-edit-fields .grocery-name { width: 100%; }
 
-.grocery-group-produce h3 { color: #235438; }
+.grocery-group-produce h2 { color: #235438; }
 .grocery-item-produce { background: #d9efd6; border-color: #85b38d; }
 .grocery-item-produce.grocery-item-checked { background: #e5efe2; }
+.grocery-item-produce .grocery-check input { accent-color: #216545; }
 .grocery-item-produce .grocery-check:hover,
 .grocery-item-produce button:not(:disabled):hover { background: #c9e6c6; }
 
 .groceries .grocery-add-trigger {
-  position: fixed;
-  z-index: 1;
-  right: max(1rem, env(safe-area-inset-right), calc((100vw - 37rem) / 2));
-  bottom: max(1rem, env(safe-area-inset-bottom));
-  width: 3.5rem;
-  height: 3.5rem;
-  border-radius: 1.2rem;
-  background: #163627;
-  color: #fff;
-  box-shadow: 0 4px 14px #16362738;
+  padding-inline: .85rem;
+  background: #fff;
+  color: #413594;
+  font-weight: 700;
+}
+
+.groceries .grocery-add-trigger:not(:disabled):hover { background: #eeebff; }
+.groceries .grocery-add-trigger:focus-visible { outline-color: #fff; }
+
+@media (max-width: 32rem) {
+  .dashboard-main:has(.groceries) { padding-bottom: calc(5rem + env(safe-area-inset-bottom)); }
+
+  .groceries .grocery-add-trigger {
+    position: fixed;
+    z-index: 1;
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    width: 3.5rem;
+    height: 3.5rem;
+    padding: 0;
+    border-radius: 1.05rem;
+    background: var(--dashboard-accent);
+    color: #fff;
+    box-shadow: 0 4px 14px #29224738;
+  }
+
+  .groceries .grocery-add-trigger span { display: none; }
+  .groceries .grocery-add-trigger:not(:disabled):hover { background: #413594; }
+  .groceries .grocery-add-trigger:focus-visible { outline-color: var(--dashboard-accent); }
 }
 
 .grocery-dialog {
@@ -480,14 +460,14 @@ a:focus-visible {
   margin: 0 auto;
   overflow-y: auto;
   padding: 1rem 1rem max(1.25rem, env(safe-area-inset-bottom));
-  border: 1px solid #d2dfd2;
+  border: 1px solid var(--dashboard-border);
   border-radius: 1.3rem 1.3rem 0 0;
   background: #fff;
-  color: #163627;
-  box-shadow: 0 16px 44px #16362735;
+  color: var(--dashboard-ink);
+  box-shadow: 0 16px 44px #1e224035;
 }
 
-.grocery-dialog::backdrop { background: #0c2319a0; }
+.grocery-dialog::backdrop { background: #1e224099; }
 
 .grocery-dialog-header {
   display: flex;
@@ -497,8 +477,8 @@ a:focus-visible {
   margin-bottom: .65rem;
 }
 
-.grocery-dialog-header button { color: #436352; }
-.grocery-dialog-header button:hover { background: #e9f0e7; }
+.grocery-dialog-header button { color: var(--dashboard-muted); }
+.grocery-dialog-header button:hover { background: #eeebff; }
 
 @media (min-width: 641px) {
   .grocery-dialog {

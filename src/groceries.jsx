@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, Leaf, Pencil, Plus, ShoppingBasket, Trash2, X } from 'lucide-react';
+import { Check, Leaf, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { grocerySuggestions } from '../shared/grocery-suggestions.js';
 import { groceryProduceDefault } from '../shared/grocery-produce.js';
 
@@ -24,7 +24,7 @@ async function api(url, options) {
   return response.status === 204 ? null : response.json();
 }
 
-export function GroceryList({ standalone = false }) {
+export function GroceryList() {
   const [items, setItems] = useState(null);
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
@@ -176,7 +176,6 @@ export function GroceryList({ standalone = false }) {
   const suggestions = suggestionsOpen && enabled && !busy
     ? grocerySuggestions(draft, history.map(({ title }) => title), active)
     : [];
-  const Heading = standalone ? 'h1' : 'h2';
 
   function renderItem(item) {
     return (
@@ -215,22 +214,22 @@ export function GroceryList({ standalone = false }) {
   }
 
   return (
-    <section className="card groceries" aria-labelledby="groceries">
-      <header className="card-header grocery-heading">
-        <span className="grocery-symbol"><ShoppingBasket size={23} aria-hidden="true" /></span>
-        <Heading id="groceries">Llista de la compra</Heading>
+    <section className="groceries" aria-labelledby="groceries">
+      <header className="dashboard-heading grocery-heading">
+        <h1 id="groceries">Llista de la compra</h1>
+        <button
+          type="button"
+          className="grocery-add-trigger"
+          ref={addButton}
+          aria-label="Afegeix un producte"
+          aria-haspopup="dialog"
+          disabled={!enabled || busy}
+          onClick={openAddDialog}
+        >
+          <Plus size={23} aria-hidden="true" />
+          <span>Afegeix</span>
+        </button>
       </header>
-      <button
-        type="button"
-        className="grocery-add-trigger"
-        ref={addButton}
-        aria-label="Afegeix un producte"
-        aria-haspopup="dialog"
-        disabled={!enabled || busy}
-        onClick={openAddDialog}
-      >
-        <Plus size={27} aria-hidden="true" />
-      </button>
       <dialog
         ref={addDialog}
         className="grocery-dialog"
@@ -291,28 +290,30 @@ export function GroceryList({ standalone = false }) {
         )}
         {adding && message && <p className="agenda-message" role="status">{messages[message]}</p>}
       </dialog>
-      {!adding && message && <p className="agenda-message" role="status">{messages[message]}</p>}
-      {items?.length === 0 && <p className="grocery-empty">La llista és buida.</p>}
-      {items?.length > 0 && active.length === 0 && <p className="grocery-empty">Ja ho heu comprat tot.</p>}
-      {[
-        { id: 'produce', title: 'Fruita i verdura', entries: active.filter((item) => item.produce) },
-        { id: 'other', title: 'Resta de la compra', entries: active.filter((item) => !item.produce) },
-      ].filter(({ entries }) => entries.length).map(({ id, title, entries }) => (
-        <section className={`grocery-group grocery-group-${id}`} key={id} aria-labelledby={`grocery-${id}`}>
-          <h3 id={`grocery-${id}`}>
-            {id === 'produce' && <Leaf size={18} aria-hidden="true" />}
-            {title}
-            <span>{entries.length}</span>
-          </h3>
-          <ul className="grocery-items" aria-labelledby={`grocery-${id}`}>{entries.map(renderItem)}</ul>
-        </section>
-      ))}
-      {checked.length > 0 && (
-        <section className="grocery-group grocery-checked" aria-labelledby="grocery-done">
-          <h3 id="grocery-done">Comprats <span>{checked.length}</span></h3>
-          <ul className="grocery-items" aria-labelledby="grocery-done">{checked.map(renderItem)}</ul>
-        </section>
-      )}
+      <div className="card grocery-list-card">
+        {!adding && message && <p className="agenda-message" role="status">{messages[message]}</p>}
+        {items?.length === 0 && <p className="grocery-empty">La llista és buida.</p>}
+        {items?.length > 0 && active.length === 0 && <p className="grocery-empty">Ja ho heu comprat tot.</p>}
+        {[
+          { id: 'produce', title: 'Fruita i verdura', entries: active.filter((item) => item.produce) },
+          { id: 'other', title: 'Resta de la compra', entries: active.filter((item) => !item.produce) },
+        ].filter(({ entries }) => entries.length).map(({ id, title, entries }) => (
+          <section className={`grocery-group grocery-group-${id}`} key={id} aria-labelledby={`grocery-${id}`}>
+            <h2 id={`grocery-${id}`}>
+              {id === 'produce' && <Leaf size={18} aria-hidden="true" />}
+              {title}
+              <span>{entries.length}</span>
+            </h2>
+            <ul className="grocery-items" aria-labelledby={`grocery-${id}`}>{entries.map(renderItem)}</ul>
+          </section>
+        ))}
+        {checked.length > 0 && (
+          <section className="grocery-group grocery-checked" aria-labelledby="grocery-done">
+            <h2 id="grocery-done">Comprats <span>{checked.length}</span></h2>
+            <ul className="grocery-items" aria-labelledby="grocery-done">{checked.map(renderItem)}</ul>
+          </section>
+        )}
+      </div>
     </section>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CalendarDays, ChevronLeft, House, Menu, ShoppingBasket } from 'lucide-react';
+import { CalendarDays, House, Menu, ShoppingBasket } from 'lucide-react';
 import { dayKey, timeZone } from '../shared/dates.js';
 import { Agenda } from './agenda.jsx';
 import { Alerts } from './alerts.jsx';
@@ -24,14 +24,17 @@ const date = new Intl.DateTimeFormat('ca-ES', {
 const pages = [
   { id: 'avui', label: 'Avui', icon: House },
   { id: 'calendari', label: 'Calendari', icon: CalendarDays },
-  { id: 'compra', label: 'Compra', icon: ShoppingBasket, href: '/compra/' },
+  { id: 'compra', label: 'Compra', icon: ShoppingBasket },
 ];
 const navigationPreference = 'family-board:hide-navigation';
+// Use hash links within the installed shopping shortcut's /compra/ scope.
+const shoppingEntry = ['/compra', '/compra/'].includes(window.location.pathname);
 
 function currentPage() {
   const hash = window.location.hash.slice(1);
   const id = hash === 'calendario' ? 'calendari' : hash;
-  return pages.some((page) => page.id === id) ? id : 'avui';
+  if (pages.some((page) => page.id === id)) return id;
+  return shoppingEntry ? 'compra' : 'avui';
 }
 
 function FamilyBoard() {
@@ -51,7 +54,7 @@ function FamilyBoard() {
 
   return (
     <>
-      {standalone ? <ShoppingPage /> : <App now={now} today={today} weather={weather} />}
+      <App now={now} today={today} weather={weather} />
       <Alerts alerts={weatherAlerts(weather, today)} />
     </>
   );
@@ -115,8 +118,6 @@ function App({ now, today, weather }) {
     return () => controller.abort();
   }, []);
 
-  if (page === 'compra') return <ShoppingPage />;
-
   const navigationLabel = navigationHidden ? 'Mostra el menú' : 'Amaga el menú';
 
   return (
@@ -140,8 +141,8 @@ function App({ now, today, weather }) {
           </a>
         </div>
         <nav className="dashboard-links" id="dashboard-links" aria-label="Seccions">
-          {pages.map(({ id, label, icon: Icon, href }) => (
-            <a key={id} href={href ?? `#${id}`} aria-current={page === id ? 'page' : undefined}>
+          {pages.map(({ id, label, icon: Icon }) => (
+            <a key={id} href={id === 'compra' && !shoppingEntry ? '/compra/' : `#${id}`} aria-current={page === id ? 'page' : undefined}>
               <Icon size={19} aria-hidden="true" />
               <span>{label}</span>
             </a>
@@ -150,18 +151,21 @@ function App({ now, today, weather }) {
       </header>
 
       <main className="dashboard-main">
-        <header className="dashboard-heading">
-          <div>
-            <time dateTime={today} className="dashboard-date calendar-date">{date.format(now)}</time>
-            <h1>{pages.find(({ id }) => id === page).label}</h1>
-          </div>
-          <time dateTime={now.toISOString()} className="dashboard-clock">{clock.format(now)}</time>
-        </header>
-
-        <div className="dashboard-content">
-          <Agenda today={today} week={page === 'calendari'} />
-          {page === 'avui' && <Weather weather={weather} today={today} />}
-        </div>
+        {page === 'compra' ? <GroceryList /> : (
+          <>
+            <header className="dashboard-heading">
+              <div>
+                <time dateTime={today} className="dashboard-date calendar-date">{date.format(now)}</time>
+                <h1>{pages.find(({ id }) => id === page).label}</h1>
+              </div>
+              <time dateTime={now.toISOString()} className="dashboard-clock">{clock.format(now)}</time>
+            </header>
+            <div className="dashboard-content">
+              <Agenda today={today} week={page === 'calendari'} />
+              {page === 'avui' && <Weather weather={weather} today={today} />}
+            </div>
+          </>
+        )}
 
         <footer className="dashboard-footer">
           <span role="status">{status.label}{status.commit && <> · <code>{status.commit}</code></>}</span>
@@ -171,14 +175,4 @@ function App({ now, today, weather }) {
   );
 }
 
-function ShoppingPage() {
-  return (
-    <main className="shopping-page">
-      <a className="shopping-back" href="/"><ChevronLeft size={18} aria-hidden="true" /> Family Board</a>
-      <GroceryList standalone />
-    </main>
-  );
-}
-
-const standalone = window.location.pathname.startsWith('/compra');
 createRoot(document.getElementById('root')).render(<FamilyBoard />);
