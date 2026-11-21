@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 import { grocerySuggestions } from '../shared/grocery-suggestions.js';
-import { isFreshProduce } from '../shared/grocery-produce.js';
+import { groceryProduceDefault, isFreshProduce } from '../shared/grocery-produce.js';
 import { groceries } from './groceries.js';
 
 test('la llista compartida conserva les edicions i rebutja les escriptures d’altres orígens', async () => {
@@ -99,4 +99,16 @@ test('detecta productes frescos en català sense classificar derivats habituals'
   for (const title of ['', 'caldo de verdures', 'iogurt de maduixa', 'patates xips', 'pèsols congelats', 'tomàquet triturat', 'tomàquet fregit', 'mongetes seques']) {
     assert.equal(isFreshProduce(title), false, title);
   }
+});
+
+
+test('comparteix la categoria del singular i el plural mantenint les tries exactes', () => {
+  assert.equal(isFreshProduce('plàtan'), true);
+  assert.equal(isFreshProduce('PLÀTANS'), true);
+  assert.equal(groceryProduceDefault('2 kg de plàtans', [{ title: 'Plàtan', produce: true }]), true);
+  assert.equal(groceryProduceDefault('plàtans', [{ title: 'Plàtan', produce: false }]), false);
+  assert.equal(groceryProduceDefault('plàtans', [
+    { title: 'Plàtan', produce: true }, { title: 'Plàtans', produce: false },
+  ]), false);
+  assert.equal(groceryProduceDefault('tomàquets de pot', [{ title: 'Tomàquet', produce: true }]), false);
 });

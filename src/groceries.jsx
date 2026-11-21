@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, Leaf, Pencil, Plus, ShoppingBasket, Trash2, X } from 'lucide-react';
-import { grocerySuggestions, searchKey } from '../shared/grocery-suggestions.js';
-import { isFreshProduce } from '../shared/grocery-produce.js';
+import { grocerySuggestions } from '../shared/grocery-suggestions.js';
+import { groceryProduceDefault } from '../shared/grocery-produce.js';
 
 const path = '/api/groceries';
 const messages = {
@@ -156,10 +156,7 @@ export function GroceryList({ standalone = false }) {
   const enabled = items !== null && message !== 'session';
   const active = items?.filter((item) => !item.checked) ?? [];
   const checked = items?.filter((item) => item.checked) ?? [];
-  const draftKey = searchKey(draft);
-  const knownProduct = history.find(({ title }) => title.toLocaleLowerCase('ca') === draft.trim().toLocaleLowerCase('ca'))
-    ?? history.find(({ title }) => searchKey(title) === draftKey);
-  const defaultProduce = knownProduct?.produce ?? isFreshProduce(draft);
+  const defaultProduce = groceryProduceDefault(draft, history);
   const suggestions = suggestionsOpen && enabled && !busy
     ? grocerySuggestions(draft, history.map(({ title }) => title), active)
     : [];
