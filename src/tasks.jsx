@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CalendarDays, Pencil, Plus, X } from 'lucide-react';
-import { compareTasks, taskPriorities, validDueDate } from '../shared/tasks.js';
+import { ArrowRight, CalendarDays, ListChecks, Pencil, Plus, X } from 'lucide-react';
+import { compareTasks, taskDates, taskPeriods, taskPriorities, validDueDate } from '../shared/tasks.js';
 import { api } from './api.js';
 
 const path = '/api/tasks';
@@ -12,6 +12,49 @@ const messages = {
   save: 'No s’ha pogut desar el canvi. Torna-ho a provar.',
 };
 const dueDateFormat = new Intl.DateTimeFormat('ca-ES', { timeZone: 'UTC', dateStyle: 'medium' });
+
+function TaskPriority({ priority }) {
+  return <span className={`task-priority task-priority-${priority}`}>Prioritat {priorities[priority].toLowerCase()}</span>;
+}
+
+function TaskDate({ date }) {
+  return <time dateTime={date}>{dueDateFormat.format(new Date(`${date}T00:00:00Z`))}</time>;
+}
+
+export function TaskOverview({ today }) {
+  const { tasks, message } = useTasks();
+  const periods = taskPeriods(tasks ?? [], today);
+
+  return (
+    <div className="dashboard-task-grid">
+      {[
+        { id: 'today', title: 'Tasques per avui', empty: 'No hi ha tasques pendents per avui.' },
+        { id: 'week', title: 'Tasques aquesta setmana', empty: 'No hi ha tasques pendents aquesta setmana.' },
+      ].map(({ id, title, empty }) => (
+        <section className="card task-overview" key={id} aria-labelledby={`task-overview-${id}`}>
+          <header className="card-header">
+            <span className="dashboard-card-icon"><ListChecks size={21} aria-hidden="true" /></span>
+            <h2 id={`task-overview-${id}`}><a href="#tasques">{title} <ArrowRight size={16} aria-hidden="true" /></a></h2>
+          </header>
+          {message ? <p className="agenda-message" role="status">{messages[message]}</p> :
+            periods[id].length === 0 ? <p className="agenda-message">{empty}</p> : (
+              <ul className="task-overview-list">
+                {periods[id].map((task) => (
+                  <li key={task.id}>
+                    <strong>{task.title}</strong>
+                    <div className="task-details">
+                      <TaskPriority priority={task.priority} />
+                      {id === 'week' && <span className="task-due"><TaskDate date={task.dueDate} /></span>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+        </section>
+      ))}
+    </div>
+  );
+}
 
 function TaskGroup({ entries, id, heading, today, enabled, onEdit, onToggle }) {
   return (
@@ -27,12 +70,12 @@ function TaskGroup({ entries, id, heading, today, enabled, onEdit, onToggle }) {
               <span className="task-summary">
                 <span className="task-title">{task.title}</span>
                 <span className="task-details">
-                  <span className={`task-priority task-priority-${task.priority}`}>Urgència {priorities[task.priority].toLowerCase()}</span>
+                  <TaskPriority priority={task.priority} />
                   {task.dueDate && (
                     <span className="task-due">
                       <CalendarDays size={15} aria-hidden="true" />
                       {!task.completed && task.dueDate < today ? 'Vençuda · ' : ''}
-                      <time dateTime={task.dueDate}>{dueDateFormat.format(new Date(`${task.dueDate}T00:00:00Z`))}</time>
+                      <TaskDate date={task.dueDate} />
                     </span>
                   )}
                 </span>
@@ -49,17 +92,14 @@ function TaskGroup({ entries, id, heading, today, enabled, onEdit, onToggle }) {
   );
 }
 
-export function Tasks({ today }) {
+function useTasks() {
   const [tasks, setTasks] = useState(null);
   const [message, setMessage] = useState('loading');
   const [saveError, setSaveError] = useState(false);
-  const [editor, setEditor] = useState(null);
   const [busy, setBusy] = useState(false);
-  const dialog = useRef(null);
-  const nameInput = useRef(null);
-  const form = useRef(null);
   const refreshRequest = useRef(null);
   const saving = useRef(false);
+  const mounted = useRef(false);
 
   async function refresh() {
     if (saving.current) return;
@@ -78,6 +118,7 @@ export function Tasks({ today }) {
   }
 
   useEffect(() => {
+    mounted.current = true;
     const refreshIfVisible = () => {
       if (document.visibilityState === 'visible') void refresh();
     };
@@ -85,21 +126,12 @@ export function Tasks({ today }) {
     const interval = window.setInterval(refreshIfVisible, 15_000);
     document.addEventListener('visibilitychange', refreshIfVisible);
     return () => {
+      mounted.current = false;
       refreshRequest.current?.abort();
       window.clearInterval(interval);
       document.removeEventListener('visibilitychange', refreshIfVisible);
     };
   }, []);
-
-  function openEditor(task) {
-    setSaveError(false);
-    setEditor({ task, id: task?.id ?? crypto.randomUUID() });
-    form.current.elements.title.value = task?.title ?? '';
-    form.current.elements.dueDate.value = task?.dueDate ?? '';
-    form.current.elements.priority.value = task?.priority ?? 'normal';
-    dialog.current.showModal();
-    nameInput.current.focus();
-  }
 
   async function save(method, id, fields) {
     if (saving.current) return false;
@@ -124,8 +156,30 @@ export function Tasks({ today }) {
     } finally {
       saving.current = false;
       setBusy(false);
-      if (dialog.current) void refresh();
+      if (mounted.current) void refresh();
     }
+  }
+
+  return { tasks, message, saveError, setSaveError, busy, saving, save };
+}
+
+export function Tasks({ today }) {
+  const { tasks, message, saveError, setSaveError, busy, saving, save } = useTasks();
+  const [editor, setEditor] = useState(null);
+  const [dueDate, setDueDate] = useState('');
+  const dialog = useRef(null);
+  const nameInput = useRef(null);
+  const form = useRef(null);
+  const { tomorrow, weekEnd } = taskDates(today);
+
+  function openEditor(task) {
+    setSaveError(false);
+    setEditor({ task, id: task?.id ?? crypto.randomUUID() });
+    form.current.elements.title.value = task?.title ?? '';
+    setDueDate(task?.dueDate ?? '');
+    form.current.elements.priority.value = task?.priority ?? 'normal';
+    dialog.current.showModal();
+    nameInput.current.focus();
   }
 
   async function submit(event) {
@@ -197,10 +251,23 @@ export function Tasks({ today }) {
             <input ref={nameInput} name="title" type="text" maxLength={120} required disabled={busy}
               onInput={(event) => event.currentTarget.setCustomValidity('')} />
           </label>
-          <label>Data límit
-            <input name="dueDate" type="date" min="1000-01-01" max="9999-12-31" disabled={busy} />
-          </label>
-          <label>Urgència
+          <div className="task-form-date">
+            <label>Data límit
+              <input name="dueDate" type="date" min="1000-01-01" max="9999-12-31" disabled={busy}
+                value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
+            </label>
+            <div className="task-date-shortcuts" role="group" aria-label="Dates ràpides">
+              {[
+                { label: 'Avui', date: today },
+                { label: 'Demà', date: tomorrow },
+                { label: 'Aquesta setmana', date: weekEnd },
+              ].map(({ label, date }) => (
+                <button type="button" key={label} disabled={busy} aria-pressed={dueDate === date}
+                  onClick={() => setDueDate(date)}>{label}</button>
+              ))}
+            </div>
+          </div>
+          <label>Prioritat
             <select name="priority" defaultValue="normal" disabled={busy}>
               {taskPriorities.map((priority) => <option key={priority} value={priority}>{priorities[priority]}</option>)}
             </select>

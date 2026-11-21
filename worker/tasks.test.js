@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
-import { compareTasks } from '../shared/tasks.js';
+import { dayKey } from '../shared/dates.js';
+import { compareTasks, taskDates, taskPeriods } from '../shared/tasks.js';
 import { tasks } from './tasks.js';
 
 test('tasks persist edits and can be completed and reopened', async (t) => {
@@ -65,4 +66,27 @@ test('pending tasks sort by urgency, then deadline, with undated tasks last in e
     [normalUndated, normalLate, high, normalEarly].sort(compareTasks),
     [high, normalEarly, normalLate, normalUndated],
   );
+});
+
+test('date shortcuts use the Madrid day and end the current week on Sunday', () => {
+  const monday = dayKey(new Date('2026-10-25T23:30:00Z'));
+  assert.deepEqual(taskDates(monday), {
+    tomorrow: '2026-10-27', weekStart: '2026-10-26', weekEnd: '2026-11-01',
+  });
+  assert.deepEqual(taskDates('2026-11-01'), {
+    tomorrow: '2026-11-02', weekStart: '2026-10-26', weekEnd: '2026-11-01',
+  });
+  assert.equal(taskDates('2026-12-31').tomorrow, '2027-01-01');
+});
+
+test('dashboard task periods include only unfinished tasks due in the selected period', () => {
+  const task = (dueDate, priority = 'normal', completed = false) => ({ dueDate, priority, completed });
+  const today = '2026-11-21';
+  const sameDay = task(today);
+  const monday = task('2026-11-16');
+  const sunday = task('2026-11-22', 'high');
+  assert.deepEqual(taskPeriods([
+    sameDay, monday, sunday, task(null), task(today, 'high', true),
+    task('2026-11-15'), task('2026-11-23'),
+  ], today), { today: [sameDay], week: [sunday, monday, sameDay] });
 });

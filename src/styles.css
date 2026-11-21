@@ -525,7 +525,19 @@ a:focus-visible {
 .task-check input:checked + .task-summary { text-decoration: none; }
 .task-check input:checked + .task-summary .task-title { text-decoration: line-through; }
 
-.task-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; }
+.dashboard-task-grid { display: grid; gap: 1.15rem; margin-top: 1.15rem; align-items: start; }
+.task-overview h2 a { display: inline-flex; align-items: center; gap: .45rem; min-height: 44px; }
+.task-overview h2 a svg { flex: none; color: var(--dashboard-accent); }
+.task-overview h2 a:hover { color: var(--dashboard-accent); }
+.task-overview-list { display: grid; gap: .4rem; }
+.task-overview-list li { padding: .65rem .8rem; border-radius: .75rem; background: #f5f6fa; overflow-wrap: anywhere; }
+.task-overview > .agenda-message { padding: .8rem; background: #f5f6fa; }
+
+@media (min-width: 47rem) {
+  .dashboard-task-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.task-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; align-items: start; }
 .task-form label { display: grid; gap: .3rem; font-weight: 650; }
 .task-form-title, .task-form .task-save { grid-column: 1 / -1; }
 .task-form :is(input, select) {
@@ -540,10 +552,21 @@ a:focus-visible {
 }
 
 .task-form select { appearance: auto; }
+.task-date-shortcuts { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .45rem; }
+.tasks .task-date-shortcuts button {
+  padding-inline: .55rem;
+  border: 1px solid var(--dashboard-border);
+  background: #f5f6fa;
+  color: #413594;
+  font-size: .8125rem;
+  font-weight: 650;
+}
+.tasks .task-date-shortcuts button:is(:hover, [aria-pressed="true"]) { background: #eeebff; border-color: #b7b6d0; }
 .task-form .task-save { background: var(--dashboard-accent); color: #fff; font-weight: 650; }
 .tasks .task-add-trigger span { display: inline; }
 
 @media (max-width: 32rem) {
+  .task-form-date { grid-column: 1 / -1; }
   .tasks .task-add-trigger { position: static; width: auto; height: auto; padding-inline: .75rem; border-radius: .65rem; }
   .dashboard-main:has(.tasks) { padding-bottom: 1rem; }
 }

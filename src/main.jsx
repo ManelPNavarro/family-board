@@ -5,7 +5,7 @@ import { dayKey, timeZone } from '../shared/dates.js';
 import { Agenda } from './agenda.jsx';
 import { Alerts } from './alerts.jsx';
 import { GroceryList } from './groceries.jsx';
-import { Tasks } from './tasks.jsx';
+import { Tasks, TaskOverview } from './tasks.jsx';
 import { Weather, useWeather } from './weather.jsx';
 import { weatherAlerts } from './weather-alerts.js';
 import './styles.css';
@@ -166,6 +166,7 @@ function App({ now, today, weather }) {
               <Agenda today={today} week={page === 'calendari'} />
               {page === 'avui' && <Weather weather={weather} today={today} />}
             </div>
+            {page === 'avui' && <TaskOverview today={today} />}
           </>
         )}
 
