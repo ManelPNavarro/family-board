@@ -158,12 +158,13 @@ h2 { font-size: clamp(1.25rem, 3vw, 1.65rem); font-weight: 700; }
   background: #fff;
 }
 
-.shopping-page .grocery-add {
+.shopping-page .grocery-composer {
   position: sticky;
   top: max(.45rem, env(safe-area-inset-top));
   z-index: 1;
-  box-shadow: 0 3px 10px #16362714;
 }
+
+.shopping-page .grocery-add { box-shadow: 0 3px 10px #16362714; }
 
 .grocery-add input, .grocery-edit input {
   min-width: 0;
@@ -264,3 +265,31 @@ h2 { font-size: clamp(1.25rem, 3vw, 1.65rem); font-weight: 700; }
 
 .grocery-checked { padding-top: .75rem; border-top: 1px solid #c8d9c8; }
 .grocery-empty { margin-top: .65rem; padding: .8rem; color: #486454; }
+
+.grocery-suggestions {
+  position: absolute;
+  z-index: 2;
+  inset-inline: 0;
+  margin-top: .35rem;
+  padding: .2rem;
+  border: 1px solid #9fb6a3;
+  border-radius: .95rem;
+  background: #fff;
+  box-shadow: 0 6px 18px #1636271f;
+}
+
+.grocery-composer { position: relative; }
+
+.grocery-suggestions li + li { border-top: 1px solid #d2dfd2; }
+
+.grocery-suggestions button {
+  width: 100%;
+  justify-content: flex-start;
+  padding: .5rem .75rem;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.grocery-suggestions button:hover, .grocery-suggestions button:focus-visible {
+  background: #e9f0e7;
+}

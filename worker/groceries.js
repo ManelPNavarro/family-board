@@ -15,13 +15,25 @@ export async function groceries(request, db, headers) {
   const url = new URL(request.url);
   const id = url.pathname === listPath ? null : url.pathname.slice(listPath.length + 1);
   const method = request.method;
+  const history = id === 'history';
   const result = (body, status = 200) => method === 'HEAD' || status === 204
     ? new Response(null, { status, headers })
     : Response.json(body, { status, headers });
 
-  if (id !== null && !uuid.test(id)) return result({ error: 'not_found' }, 404);
+  if (id !== null && !history && !uuid.test(id)) return result({ error: 'not_found' }, 404);
 
   try {
+    if (history) {
+      if (method !== 'GET' && method !== 'HEAD') {
+        return new Response(null, { status: 405, headers: { ...headers, Allow: 'GET, HEAD' } });
+      }
+      const { results } = await db.prepare(`
+        SELECT title FROM grocery_history
+        ORDER BY times_added DESC, last_seen DESC, title COLLATE NOCASE
+      `).all();
+      return result({ titles: results.map(({ title }) => title) });
+    }
+
     if (!id && (method === 'GET' || method === 'HEAD')) {
       const { results } = await db.prepare(
         `SELECT ${columns} FROM grocery_items ORDER BY rowid`,

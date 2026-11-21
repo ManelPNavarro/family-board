@@ -2,11 +2,15 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
+import { grocerySuggestions } from '../shared/grocery-suggestions.js';
 import { groceries } from './groceries.js';
 
 test('la llista compartida conserva les edicions i rebutja les escriptures d’altres orígens', async () => {
   const db = new DatabaseSync(':memory:');
   db.exec(await readFile(new URL('../migrations/0001_groceries.sql', import.meta.url), 'utf8'));
+  const existing = '12345678-1234-4567-89ab-123456789013';
+  db.prepare('INSERT INTO grocery_items (id, title, checked) VALUES (?, ?, 1)').run(existing, 'Cafè');
+  db.exec(await readFile(new URL('../migrations/0002_grocery_history.sql', import.meta.url), 'utf8'));
   const d1 = {
     prepare(sql) {
       const statement = db.prepare(sql);
@@ -29,6 +33,10 @@ test('la llista compartida conserva les edicions i rebutja les escriptures d’a
     }), d1, { 'Cache-Control': 'private, no-store' });
   }
 
+  assert.deepEqual(await (await send('GET', '/history')).json(), { titles: ['Cafè'] });
+  assert.equal((await send('POST', '/history', {})).status, 405);
+  assert.equal((await send('DELETE', `/${existing}`)).status, 204);
+
   assert.equal((await send('POST', '', { id, title: 'Llet' }, 'https://other.example')).status, 403);
   assert.equal((await send('POST', '', { id, title: '  ' })).status, 400);
   assert.deepEqual(await (await send('GET')).json(), { items: [] });
@@ -49,5 +57,16 @@ test('la llista compartida conserva les edicions i rebutja les escriptures d’a
   assert.equal((await send('DELETE', `/${id}`)).status, 204);
   assert.equal((await send('PATCH', `/${id}`, { checked: false })).status, 404);
   assert.deepEqual(await (await send('GET')).json(), { items: [] });
+  assert.deepEqual(new Set((await (await send('GET', '/history')).json()).titles),
+    new Set(['Llet', 'Llet sencera', 'Cafè']));
+  assert.equal(db.prepare("SELECT times_added FROM grocery_history WHERE title = 'Llet'").get().times_added, 1);
   db.close();
+});
+
+
+test('els suggeriments ignoren accents, prioritzen l’inici i amaguen els pendents', () => {
+  const history = ['Pa de cafè', 'Cafè', 'Cafe', 'Cafetera', 'Llet'];
+  assert.deepEqual(grocerySuggestions(' cAf ', history, [{ title: 'Cafetera' }]), ['Cafè', 'Pa de cafè']);
+  assert.deepEqual(grocerySuggestions('cafe', history, []), ['Cafè', 'Cafetera', 'Pa de cafè']);
+  assert.deepEqual(grocerySuggestions('', history, []), []);
 });

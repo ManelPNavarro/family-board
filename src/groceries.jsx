@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, Pencil, Plus, ShoppingBasket, Trash2, X } from 'lucide-react';
+import { grocerySuggestions } from '../shared/grocery-suggestions.js';
 
 const path = '/api/groceries';
 const messages = {
@@ -28,10 +29,32 @@ export function GroceryList({ standalone = false }) {
   const [editing, setEditing] = useState(null);
   const [message, setMessage] = useState('loading');
   const [busy, setBusy] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const refreshRequest = useRef(null);
   const pending = useRef(false);
   const creation = useRef(null);
   const addInput = useRef(null);
+  const firstSuggestion = useRef(null);
+  const historyRequest = useRef(null);
+
+  async function loadHistory() {
+    historyRequest.current?.abort();
+    const controller = new AbortController();
+    historyRequest.current = controller;
+    try {
+      const { titles } = await api(`${path}/history`, { signal: controller.signal });
+      if (!controller.signal.aborted) setHistory(titles);
+    } catch {
+      // A failed history request should not interrupt adding an item.
+    }
+  }
+
+  function selectSuggestion(title) {
+    setDraft(title);
+    addInput.current?.focus();
+    setSuggestionsOpen(false);
+  }
 
   async function refresh() {
     if (pending.current) return;
@@ -58,6 +81,7 @@ export function GroceryList({ standalone = false }) {
     document.addEventListener('visibilitychange', refreshIfVisible);
     return () => {
       refreshRequest.current?.abort();
+      historyRequest.current?.abort();
       window.clearInterval(interval);
       document.removeEventListener('visibilitychange', refreshIfVisible);
     };
@@ -105,6 +129,7 @@ export function GroceryList({ standalone = false }) {
       creation.current = null;
       setDraft('');
       addInput.current?.focus();
+      void loadHistory();
     }
   }
 
@@ -117,6 +142,9 @@ export function GroceryList({ standalone = false }) {
   const enabled = items !== null && message !== 'session';
   const active = items?.filter((item) => !item.checked) ?? [];
   const checked = items?.filter((item) => item.checked) ?? [];
+  const suggestions = suggestionsOpen && enabled && !busy
+    ? grocerySuggestions(draft, history, active)
+    : [];
   const Heading = standalone ? 'h1' : 'h2';
 
   function renderItem(item) {
@@ -154,11 +182,49 @@ export function GroceryList({ standalone = false }) {
         <span className="grocery-symbol"><ShoppingBasket size={23} aria-hidden="true" /></span>
         <Heading id="groceries">Llista de la compra</Heading>
       </header>
-      <form className="grocery-add" onSubmit={add}>
-        <input ref={addInput} type="text" aria-label="Producte nou" placeholder="Afegeix un producte"
-          value={draft} maxLength={120} readOnly={busy || !enabled} onChange={(event) => setDraft(event.target.value)} />
-        <button type="submit" disabled={!enabled || busy || !draft.trim()}><Plus size={18} aria-hidden="true" /> Afegeix</button>
-      </form>
+      <div
+        className="grocery-composer"
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setSuggestionsOpen(false);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape' && suggestions.length) {
+            addInput.current?.focus();
+            setSuggestionsOpen(false);
+          }
+        }}
+      >
+        <form className="grocery-add" onSubmit={add}>
+          <input ref={addInput} type="text" aria-label="Producte nou" placeholder="Afegeix un producte"
+            autoComplete="off" value={draft} maxLength={120} readOnly={busy || !enabled}
+            onFocus={() => {
+              setSuggestionsOpen(true);
+              void loadHistory();
+            }}
+            onChange={(event) => {
+              setDraft(event.target.value);
+              setSuggestionsOpen(true);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowDown' && suggestions.length) {
+                event.preventDefault();
+                firstSuggestion.current?.focus();
+              }
+            }} />
+          <button type="submit" disabled={!enabled || busy || !draft.trim()}><Plus size={18} aria-hidden="true" /> Afegeix</button>
+        </form>
+        {suggestions.length > 0 && (
+          <ul className="grocery-suggestions" aria-label="Productes suggerits">
+            {suggestions.map((title, index) => (
+              <li key={title}>
+                <button type="button" ref={index === 0 ? firstSuggestion : null}
+                  onPointerDown={(event) => event.preventDefault()}
+                  onClick={() => selectSuggestion(title)}>{title}</button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       {message && <p className="agenda-message" role="status">{messages[message]}</p>}
       {items?.length === 0 && <p className="grocery-empty">La llista és buida.</p>}
       {items?.length > 0 && (
