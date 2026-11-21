@@ -1,4 +1,4 @@
-function searchKey(title) {
+export function searchKey(title) {
   return title.trim().toLocaleLowerCase('ca').normalize('NFD').replace(/\p{M}/gu, '');
 }
 

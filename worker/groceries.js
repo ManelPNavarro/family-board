@@ -1,9 +1,13 @@
 const listPath = '/api/groceries';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
-const columns = 'id, title, checked';
+const selectItems = `
+  SELECT item.id, item.title, item.checked, COALESCE(history.produce, 0) AS produce
+  FROM grocery_items item
+  LEFT JOIN grocery_history history ON history.name_key = lower(trim(item.title))
+`;
 
 function item(row) {
-  return { ...row, checked: row.checked === 1 };
+  return { ...row, checked: row.checked === 1, produce: row.produce === 1 };
 }
 
 function validTitle(value) {
@@ -28,15 +32,18 @@ export async function groceries(request, db, headers) {
         return new Response(null, { status: 405, headers: { ...headers, Allow: 'GET, HEAD' } });
       }
       const { results } = await db.prepare(`
-        SELECT title FROM grocery_history
+        SELECT title, produce FROM grocery_history
         ORDER BY times_added DESC, last_seen DESC, title COLLATE NOCASE
       `).all();
-      return result({ titles: results.map(({ title }) => title) });
+      return result({
+        titles: results.map(({ title }) => title),
+        products: results.map(({ title, produce }) => ({ title, produce: produce === 1 })),
+      });
     }
 
     if (!id && (method === 'GET' || method === 'HEAD')) {
       const { results } = await db.prepare(
-        `SELECT ${columns} FROM grocery_items ORDER BY rowid`,
+        `${selectItems} ORDER BY item.rowid`,
       ).all();
       return result({ items: results.map(item) });
     }
@@ -57,30 +64,55 @@ export async function groceries(request, db, headers) {
     }
     const body = await request.json().catch(() => null);
     const title = validTitle(body?.title);
+    const hasProduce = typeof body?.produce === 'boolean';
+    if (body != null && Object.hasOwn(body, 'produce') && !hasProduce) {
+      return result({ error: 'invalid_item' }, 400);
+    }
 
     if (method === 'POST') {
       if (!title || typeof body?.id !== 'string' || !uuid.test(body.id)) {
         return result({ error: 'invalid_item' }, 400);
       }
-      // Retries of a creation with the same ID must not undo another device's edits.
-      await db.prepare('INSERT INTO grocery_items (id, title) VALUES (?, ?) ON CONFLICT(id) DO NOTHING')
-        .bind(body.id, title).run();
-      const row = await db.prepare(`SELECT ${columns} FROM grocery_items WHERE id = ?`)
-        .bind(body.id).first();
+
+      const statements = [];
+      if (hasProduce) {
+        // Only a new item may change its product category on creation.
+        statements.push(db.prepare(`
+          INSERT INTO grocery_history (name_key, title, times_added, last_seen, produce)
+          SELECT lower(trim(?)), ?, 0, 0, ?
+          WHERE NOT EXISTS (SELECT 1 FROM grocery_items WHERE id = ?)
+          ON CONFLICT(name_key) DO UPDATE SET produce = excluded.produce
+        `).bind(title, title, Number(body.produce), body.id));
+      }
+      statements.push(
+        db.prepare('INSERT INTO grocery_items (id, title) VALUES (?, ?) ON CONFLICT(id) DO NOTHING')
+          .bind(body.id, title),
+        db.prepare(`${selectItems} WHERE item.id = ?`).bind(body.id),
+      );
+      const row = (await db.batch(statements)).at(-1).results[0];
       return row ? result({ item: item(row) }, 201) : result({ error: 'not_found' }, 404);
     }
 
     const hasChecked = typeof body?.checked === 'boolean';
-    if ((!title && !hasChecked) || (Object.hasOwn(body, 'title') && !title) ||
+    if ((!title && !hasChecked && !hasProduce) || (Object.hasOwn(body, 'title') && !title) ||
         (Object.hasOwn(body, 'checked') && !hasChecked)) {
       return result({ error: 'invalid_item' }, 400);
     }
-    const row = await db.prepare(`
-      UPDATE grocery_items
-      SET title = COALESCE(?, title), checked = COALESCE(?, checked)
-      WHERE id = ?
-      RETURNING ${columns}
-    `).bind(title, hasChecked ? Number(body.checked) : null, id).first();
+
+    const statements = [
+      db.prepare(`
+        UPDATE grocery_items SET title = COALESCE(?, title), checked = COALESCE(?, checked)
+        WHERE id = ?
+      `).bind(title, hasChecked ? Number(body.checked) : null, id),
+    ];
+    if (hasProduce) {
+      statements.push(db.prepare(`
+        UPDATE grocery_history SET produce = ?
+        WHERE name_key = (SELECT lower(trim(title)) FROM grocery_items WHERE id = ?)
+      `).bind(Number(body.produce), id));
+    }
+    statements.push(db.prepare(`${selectItems} WHERE item.id = ?`).bind(id));
+    const row = (await db.batch(statements)).at(-1).results[0];
     return row ? result({ item: item(row) }) : result({ error: 'not_found' }, 404);
   } catch {
     return result({ error: 'unavailable' }, 503);

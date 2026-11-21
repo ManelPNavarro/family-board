@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, Pencil, Plus, ShoppingBasket, Trash2, X } from 'lucide-react';
-import { grocerySuggestions } from '../shared/grocery-suggestions.js';
+import { Check, Leaf, Pencil, Plus, ShoppingBasket, Trash2, X } from 'lucide-react';
+import { grocerySuggestions, searchKey } from '../shared/grocery-suggestions.js';
 
 const path = '/api/groceries';
 const messages = {
@@ -26,6 +26,7 @@ async function api(url, options) {
 export function GroceryList({ standalone = false }) {
   const [items, setItems] = useState(null);
   const [draft, setDraft] = useState('');
+  const [draftProduce, setDraftProduce] = useState(null);
   const [editing, setEditing] = useState(null);
   const [message, setMessage] = useState('loading');
   const [busy, setBusy] = useState(false);
@@ -43,8 +44,8 @@ export function GroceryList({ standalone = false }) {
     const controller = new AbortController();
     historyRequest.current = controller;
     try {
-      const { titles } = await api(`${path}/history`, { signal: controller.signal });
-      if (!controller.signal.aborted) setHistory(titles);
+      const { products } = await api(`${path}/history`, { signal: controller.signal });
+      if (!controller.signal.aborted) setHistory(products ?? []);
     } catch {
       // A failed history request should not interrupt adding an item.
     }
@@ -52,6 +53,7 @@ export function GroceryList({ standalone = false }) {
 
   function selectSuggestion(title) {
     setDraft(title);
+    setDraftProduce(null);
     addInput.current?.focus();
     setSuggestionsOpen(false);
   }
@@ -123,11 +125,15 @@ export function GroceryList({ standalone = false }) {
     event.preventDefault();
     const title = draft.trim();
     if (!title || pending.current) return;
-    if (creation.current?.title !== title) creation.current = { id: crypto.randomUUID(), title };
+    const produce = draftProduce ?? rememberedProduce;
+    if (creation.current?.title !== title) {
+      creation.current = { id: crypto.randomUUID(), title };
+    }
 
-    if (await write('POST', null, creation.current)) {
+    if (await write('POST', null, { ...creation.current, produce })) {
       creation.current = null;
       setDraft('');
+      setDraftProduce(null);
       addInput.current?.focus();
       void loadHistory();
     }
@@ -136,24 +142,40 @@ export function GroceryList({ standalone = false }) {
   async function rename(event) {
     event.preventDefault();
     const title = editing.title.trim();
-    if (title && await write('PATCH', editing.id, { title })) setEditing(null);
+    const changes = {};
+    if (title !== editing.originalTitle) changes.title = title;
+    if (changes.title || editing.produce !== editing.originalProduce) changes.produce = editing.produce;
+    if (!Object.keys(changes).length || (title && await write('PATCH', editing.id, changes))) {
+      setEditing(null);
+    }
   }
 
   const enabled = items !== null && message !== 'session';
   const active = items?.filter((item) => !item.checked) ?? [];
   const checked = items?.filter((item) => item.checked) ?? [];
+  const draftKey = searchKey(draft);
+  const knownProduct = history.find(({ title }) => title.toLocaleLowerCase('ca') === draft.trim().toLocaleLowerCase('ca'))
+    ?? history.find(({ title }) => searchKey(title) === draftKey);
+  const rememberedProduce = knownProduct?.produce;
   const suggestions = suggestionsOpen && enabled && !busy
-    ? grocerySuggestions(draft, history, active)
+    ? grocerySuggestions(draft, history.map(({ title }) => title), active)
     : [];
   const Heading = standalone ? 'h1' : 'h2';
 
   function renderItem(item) {
     return (
-      <li className={`grocery-item${item.checked ? ' grocery-item-checked' : ''}`} key={item.id}>
+      <li className={`grocery-item${item.checked ? ' grocery-item-checked' : ''}${item.produce ? ' grocery-item-produce' : ''}`} key={item.id}>
         {editing?.id === item.id ? (
           <form className="grocery-edit" onSubmit={rename}>
-            <input aria-label="Nom del producte" maxLength={120} value={editing.title} autoFocus
-              readOnly={busy} onChange={(event) => setEditing({ id: item.id, title: event.target.value })} />
+            <div className="grocery-edit-fields">
+              <input className="grocery-name" aria-label="Nom del producte" maxLength={120} value={editing.title} autoFocus
+                readOnly={busy} onChange={(event) => setEditing({ ...editing, title: event.target.value })} />
+              <label className="grocery-produce-toggle">
+                <input type="checkbox" checked={editing.produce} disabled={busy}
+                  onChange={(event) => setEditing({ ...editing, produce: event.target.checked })} />
+                Fruita o verdura
+              </label>
+            </div>
             <button type="submit" disabled={!editing.title.trim() || busy} aria-label="Desa el nom"><Check /></button>
             <button type="button" disabled={busy} onClick={() => setEditing(null)} aria-label="Cancel·la l’edició"><X /></button>
           </form>
@@ -166,7 +188,7 @@ export function GroceryList({ standalone = false }) {
             </label>
             <div className="grocery-actions">
               <button type="button" disabled={busy || !enabled} aria-label={`Edita ${item.title}`}
-                onClick={() => setEditing(item)}><Pencil size={16} aria-hidden="true" /></button>
+                onClick={() => setEditing({ ...item, produce: Boolean(item.produce), originalTitle: item.title, originalProduce: Boolean(item.produce) })}><Pencil size={16} aria-hidden="true" /></button>
               <button type="button" disabled={busy || !enabled} aria-label={`Elimina ${item.title}`}
                 onClick={() => void write('DELETE', item.id)}><Trash2 size={16} aria-hidden="true" /></button>
             </div>
@@ -203,6 +225,7 @@ export function GroceryList({ standalone = false }) {
             }}
             onChange={(event) => {
               setDraft(event.target.value);
+              if (!event.target.value.trim()) setDraftProduce(null);
               setSuggestionsOpen(true);
             }}
             onKeyDown={(event) => {
@@ -213,6 +236,11 @@ export function GroceryList({ standalone = false }) {
             }} />
           <button type="submit" disabled={!enabled || busy || !draft.trim()}><Plus size={18} aria-hidden="true" /> Afegeix</button>
         </form>
+        <label className="grocery-produce-toggle grocery-add-produce">
+          <input type="checkbox" checked={draftProduce ?? rememberedProduce ?? false} disabled={busy || !enabled}
+            onChange={(event) => setDraftProduce(event.target.checked)} />
+          Fruita o verdura
+        </label>
         {suggestions.length > 0 && (
           <ul className="grocery-suggestions" aria-label="Productes suggerits">
             {suggestions.map((title, index) => (
@@ -227,14 +255,20 @@ export function GroceryList({ standalone = false }) {
       </div>
       {message && <p className="agenda-message" role="status">{messages[message]}</p>}
       {items?.length === 0 && <p className="grocery-empty">La llista és buida.</p>}
-      {items?.length > 0 && (
-        <section className="grocery-group" aria-labelledby="grocery-pending">
-          <h3 id="grocery-pending">Pendents <span>{active.length}</span></h3>
-          {active.length > 0
-            ? <ul className="grocery-items" aria-labelledby="grocery-pending">{active.map(renderItem)}</ul>
-            : <p className="grocery-empty">Ja ho heu comprat tot.</p>}
+      {items?.length > 0 && active.length === 0 && <p className="grocery-empty">Ja ho heu comprat tot.</p>}
+      {[
+        { id: 'produce', title: 'Fruita i verdura', entries: active.filter((item) => item.produce) },
+        { id: 'other', title: 'Resta de la compra', entries: active.filter((item) => !item.produce) },
+      ].filter(({ entries }) => entries.length).map(({ id, title, entries }) => (
+        <section className={`grocery-group grocery-group-${id}`} key={id} aria-labelledby={`grocery-${id}`}>
+          <h3 id={`grocery-${id}`}>
+            {id === 'produce' && <Leaf size={18} aria-hidden="true" />}
+            {title}
+            <span>{entries.length}</span>
+          </h3>
+          <ul className="grocery-items" aria-labelledby={`grocery-${id}`}>{entries.map(renderItem)}</ul>
         </section>
-      )}
+      ))}
       {checked.length > 0 && (
         <section className="grocery-group grocery-checked" aria-labelledby="grocery-done">
           <h3 id="grocery-done">Comprats <span>{checked.length}</span></h3>
