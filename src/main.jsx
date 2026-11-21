@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CalendarDays, ChevronLeft, House, ShoppingBasket } from 'lucide-react';
+import { CalendarDays, ChevronLeft, House, PanelLeftClose, PanelLeftOpen, ShoppingBasket } from 'lucide-react';
 import { dayKey, timeZone } from '../shared/dates.js';
 import { Agenda } from './agenda.jsx';
 import { Alerts } from './alerts.jsx';
@@ -26,6 +26,7 @@ const pages = [
   { id: 'calendari', label: 'Calendari', icon: CalendarDays },
   { id: 'compra', label: 'Compra', icon: ShoppingBasket, href: '/compra/' },
 ];
+const navigationPreference = 'family-board:hide-navigation';
 
 function currentPage() {
   const hash = window.location.hash.slice(1);
@@ -59,6 +60,23 @@ function FamilyBoard() {
 function App({ now, today, weather }) {
   const [page, setPage] = useState(currentPage);
   const [status, setStatus] = useState({ label: 'S’està comprovant la versió' });
+  const [navigationHidden, setNavigationHidden] = useState(() => {
+    try {
+      return window.localStorage.getItem(navigationPreference) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  function toggleNavigation() {
+    const hidden = !navigationHidden;
+    setNavigationHidden(hidden);
+    try {
+      window.localStorage.setItem(navigationPreference, String(hidden));
+    } catch {
+      // The menu can still be toggled when storage is unavailable.
+    }
+  }
 
   useEffect(() => {
     const handleHash = () => setPage(currentPage());
@@ -99,9 +117,12 @@ function App({ now, today, weather }) {
 
   if (page === 'compra') return <ShoppingPage />;
 
+  const NavigationIcon = navigationHidden ? PanelLeftOpen : PanelLeftClose;
+  const navigationLabel = navigationHidden ? 'Mostra el menú' : 'Amaga el menú';
+
   return (
-    <div className="dashboard">
-      <header className="dashboard-navigation">
+    <div className={navigationHidden ? 'dashboard dashboard-navigation-hidden' : 'dashboard'}>
+      <header className="dashboard-navigation" id="dashboard-navigation">
         <a className="brand" href="#avui">
           <span className="brand-icon"><House size={20} aria-hidden="true" /></span>
           Family Board
@@ -118,9 +139,22 @@ function App({ now, today, weather }) {
 
       <main className="dashboard-main">
         <header className="dashboard-heading">
-          <div>
-            <time dateTime={today} className="dashboard-date calendar-date">{date.format(now)}</time>
-            <h1>{pages.find(({ id }) => id === page).label}</h1>
+          <div className="dashboard-heading-title">
+            <button
+              type="button"
+              className="dashboard-navigation-toggle"
+              aria-label={navigationLabel}
+              aria-expanded={!navigationHidden}
+              aria-controls="dashboard-navigation"
+              title={navigationLabel}
+              onClick={toggleNavigation}
+            >
+              <NavigationIcon size={22} aria-hidden="true" />
+            </button>
+            <div>
+              <time dateTime={today} className="dashboard-date calendar-date">{date.format(now)}</time>
+              <h1>{pages.find(({ id }) => id === page).label}</h1>
+            </div>
           </div>
           <time dateTime={now.toISOString()} className="dashboard-clock">{clock.format(now)}</time>
         </header>
