@@ -3,7 +3,7 @@ import test from 'node:test';
 import { exportPKCS8, generateKeyPair, jwtVerify } from 'jose';
 import { getFamilyCalendar } from './calendar.js';
 
-test('lee solo el calendario configurado y agrupa eventos en días de Madrid', async (t) => {
+test('reads only the configured calendar and groups events by day in Madrid', async (t) => {
   const { privateKey, publicKey } = await generateKeyPair('RS256', { extractable: true });
   const credentials = {
     client_email: 'family-board@example.invalid',
@@ -44,7 +44,7 @@ test('lee solo el calendario configurado y agrupa eventos en días de Madrid', a
 
     return Response.json({ nextPageToken: 'next', items: [{
       id: 'all-day',
-      summary: 'Cumpleaños',
+      summary: 'Birthday',
       start: { date: '2026-10-24' },
       end: { date: '2026-10-26' },
     }] });
@@ -55,7 +55,7 @@ test('lee solo el calendario configurado y agrupa eventos en días de Madrid', a
   assert.deepEqual(days[0], {
     date: '2026-10-25',
     events: [
-      { id: 'all-day', title: 'Cumpleaños', start: null },
+      { id: 'all-day', title: 'Birthday', start: null },
       { id: 'private', title: 'Ocupat', start: '2026-10-25T23:30:00+01:00', continues: false },
     ],
   });

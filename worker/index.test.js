@@ -3,7 +3,7 @@ import test from 'node:test';
 import { exportJWK, generateKeyPair, SignJWT } from 'jose';
 import worker from './index.js';
 
-test('el Worker exige una sesión de Access válida para el panel y la API', async (t) => {
+test('the Worker requires a valid Access session for the dashboard and API', async (t) => {
   const issuer = 'https://family-board-test.cloudflareaccess.com';
   const audience = 'family-board';
   const { privateKey, publicKey } = await generateKeyPair('RS256');

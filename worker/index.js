@@ -61,7 +61,7 @@ export default {
         const result = await env.DB.prepare('SELECT 1 AS ok').first('ok');
         if (result === 1) database = 'ready';
       } catch {
-        // No devolver detalles de infraestructura al cliente.
+        // Keep infrastructure details out of the response.
       }
       const status = database === 'ready' ? 200 : 503;
       if (request.method === 'HEAD') return new Response(null, { status, headers });

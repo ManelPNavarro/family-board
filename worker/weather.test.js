@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { getWeather } from './weather.js';
 
-test('el temps retorna la previsió local i caduca les dades antigues', async (t) => {
+test('returns the local forecast and expires stale weather data', async (t) => {
   const location = JSON.stringify({ name: 'Municipi de prova', latitude: 41, longitude: 2 });
   const now = new Date('2026-11-21T09:00:00Z');
   let available = true;

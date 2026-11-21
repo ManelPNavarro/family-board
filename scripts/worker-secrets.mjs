@@ -7,19 +7,19 @@ const secrets = {};
 
 if (calendarId || rawCredentials) {
   if (!calendarId || !rawCredentials) {
-    throw new Error('Configura los dos secretos de Google Calendar en GitHub Actions.');
+    throw new Error('Set both Google Calendar secrets in GitHub Actions.');
   }
 
   let credentials;
   try {
     credentials = JSON.parse(rawCredentials);
   } catch {
-    throw new Error('GOOGLE_CALENDAR_SERVICE_ACCOUNT debe ser una clave JSON de Google.');
+    throw new Error('GOOGLE_CALENDAR_SERVICE_ACCOUNT must be a Google JSON key.');
   }
 
   const { type, client_email, private_key, private_key_id } = credentials ?? {};
   if (type !== 'service_account' || !client_email || !private_key?.startsWith('-----BEGIN PRIVATE KEY-----')) {
-    throw new Error('La clave JSON tiene que corresponder a una cuenta de servicio de Google.');
+    throw new Error('The JSON key must belong to a Google service account.');
   }
 
   secrets.GOOGLE_CALENDAR_ID = calendarId;
@@ -30,7 +30,7 @@ if (weatherLocation) {
   try {
     secrets.WEATHER_LOCATION = JSON.stringify(parseWeatherLocation(weatherLocation));
   } catch {
-    throw new Error('WEATHER_LOCATION necessita un JSON amb name, latitude i longitude vàlids.');
+    throw new Error('WEATHER_LOCATION must be a JSON object with valid name, latitude, and longitude fields.');
   }
 }
 

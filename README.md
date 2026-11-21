@@ -1,10 +1,11 @@
 # Family Board
 
-Panel doméstico para tablet y móvil. La agenda se conecta al calendario
-familiar de Google y el despliegue se realiza desde GitHub Actions.
-El pie del panel muestra los primeros siete caracteres del commit en producción.
+A private household dashboard for tablets and phones. The agenda reads from
+the family's shared Google Calendar, and GitHub Actions deploys the app to
+Cloudflare Workers. The footer shows the first seven characters of the commit
+running in production.
 
-## Desarrollo local
+## Local development
 
 ```sh
 npm ci
@@ -13,98 +14,99 @@ npm test
 npm run build
 ```
 
-Vite sirve una vista local con datos de ejemplo. El Worker desplegado comprueba
-la firma, el emisor, la audiencia y la caducidad del JWT de Cloudflare Access
-antes de servir la interfaz, los archivos estáticos o la API. El endpoint privado
-`/api/status` comprueba la conexión con D1.
+Vite serves a local preview with sample data. In production, the Worker
+validates the signature, issuer, audience, and expiry of the Cloudflare Access
+JWT before serving the UI, static assets, or API. The private `/api/status`
+endpoint checks the D1 connection.
 
-## Activación inicial
+## Initial setup
 
-1. En **Cloudflare → Workers & Pages**, configura un subdominio de cuenta
-   `workers.dev`. En **Storage & databases → D1**, crea la base `family-board`.
-2. En [Variables de GitHub Actions](https://github.com/ManelPNavarro/family-board/settings/variables/actions),
-   crea `D1_DATABASE_ID` con el identificador de la base. En
-   [Secretos de GitHub Actions](https://github.com/ManelPNavarro/family-board/settings/secrets/actions),
-   guarda `CLOUDFLARE_ACCOUNT_ID` y `CLOUDFLARE_API_TOKEN`. Usa **Account Settings
-   → Read** y **Workers Scripts → Edit**, limitados a la cuenta de Family Board.
-   Para un Worker ya creado, puedes limitar el permiso de edición a ese Worker.
-3. Ejecuta el workflow **Family Board** en `main` desde GitHub Actions. Este
-   primer despliegue registra el Worker con la URL y las vistas previas desactivadas.
-4. Completa el alta en [Cloudflare Zero Trust Free](https://developers.cloudflare.com/cloudflare-one/setup/).
-   Cloudflare solicita un método de pago durante el alta del plan gratuito.
-   Activa **One-time PIN** como método de inicio de sesión en Cloudflare Zero
-   Trust. En **Workers & Pages → family-board → Access**, protege el Worker con
-   **All traffic**. En la aplicación de Access, configura una política **Allow**
-   con **Include → Emails** para las direcciones exactas de la familia, selecciona
-   **One-time PIN** y ajusta la sesión de aplicación a **7 días**. Ajusta la
-   sesión global a **1 mes** desde **Access settings**. La sesión global afecta
-   a las aplicaciones de ese equipo de Zero Trust.
-5. Copia el nombre de equipo de Zero Trust (la parte anterior a
-   `.cloudflareaccess.com`) y la etiqueta **Application Audience (AUD)** de la
-   aplicación. Guárdalos en las variables de GitHub Actions `ACCESS_TEAM` y
-   `ACCESS_AUD`. Ejecuta de nuevo el workflow. Con ambas variables definidas,
-   Wrangler habilita la URL `https://family-board.<subdominio>.workers.dev`.
-6. Abre la URL y `/api/status` en una ventana privada. Access debe exigir inicio
-   de sesión. Entra con un correo autorizado y comprueba que el panel muestra
-   **D1 conectado** y el commit de la ejecución. Los siguientes pushes a
-   `main` publican automáticamente si pasan los checks.
+1. In **Cloudflare → Workers & Pages**, set up a `workers.dev` subdomain for
+   your account. In **Storage & databases → D1**, create the `family-board`
+   database.
+2. In [GitHub Actions variables](https://github.com/ManelPNavarro/family-board/settings/variables/actions),
+   set `D1_DATABASE_ID` to the database ID. In
+   [GitHub Actions secrets](https://github.com/ManelPNavarro/family-board/settings/secrets/actions),
+   add `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`. Use **Account Settings
+   → Read** and **Workers Scripts → Edit**, scoped to the Family Board account.
+   Once the Worker exists, you can scope edit access to that Worker.
+3. Run the **Family Board** workflow on `main` from GitHub Actions. This first
+   deployment registers the Worker with its URL and previews disabled.
+4. Set up [Cloudflare Zero Trust Free](https://developers.cloudflare.com/cloudflare-one/setup/).
+   Cloudflare asks for a payment method during free plan signup. Enable
+   **One-time PIN** as a login method. In **Workers & Pages → family-board →
+   Access**, protect **All traffic**. In the Access application, create an
+   **Allow** policy with **Include → Emails** and enter the family's exact
+   email addresses. Select **One-time PIN** and set the application session
+   to **7 days**. In **Access settings**, set the global session to **1 month**.
+   The global duration applies to applications in that Zero Trust team.
+5. Copy the Zero Trust team name (the part before `.cloudflareaccess.com`) and
+   the application's **Application Audience (AUD)**. Save them as
+   `ACCESS_TEAM` and `ACCESS_AUD` in GitHub Actions variables. Run the workflow
+   again. With both variables set, Wrangler enables
+   `https://family-board.<subdomain>.workers.dev`.
+6. Open the URL and `/api/status` in a private window. Access should require
+   sign-in. Sign in with an approved email and confirm the dashboard reports
+   that D1 is connected and shows the deployed commit. Subsequent pushes to
+   `main` deploy automatically after checks pass.
 
-Los secretos de futuras integraciones se guardarán en GitHub Actions Secrets y
-se cargarán en el Worker en el despliegue. Las llamadas autenticadas a terceros
-se harán desde el Worker.
+Store integration credentials in GitHub Actions secrets. The deployment
+installs them as Worker secrets, and the Worker makes authenticated
+third-party requests.
 
-- [Cloudflare Access para Workers](https://developers.cloudflare.com/workers/configuration/cloudflare-access/)
-- [Duración de las sesiones](https://developers.cloudflare.com/cloudflare-one/access-controls/access-settings/session-management/)
-- [Despliegue de Workers con GitHub Actions](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/)
+- [Cloudflare Access for Workers](https://developers.cloudflare.com/workers/configuration/cloudflare-access/)
+- [Cloudflare Access session durations](https://developers.cloudflare.com/cloudflare-one/access-controls/access-settings/session-management/)
+- [Deploy Workers with GitHub Actions](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/)
 
-## Calendario familiar de Google
+## Shared Google Calendar
 
-Family Board lee un único calendario. **Hoy** muestra el día actual y
-**Calendario** muestra siete días, incluido hoy.
+Family Board reads one calendar. The home view shows today's events, and the
+calendar view shows seven days starting today.
 
-1. En un proyecto de Google Cloud, habilita **Google Calendar API** y crea una
-   cuenta de servicio para Family Board. No necesita roles de IAM en el
-   proyecto ni delegación del dominio.
-2. En Google Calendar, abre **Configuración y uso compartido** del calendario
-   familiar. Añade el correo de la cuenta de servicio con permiso **Ver todos
-   los detalles de los eventos**. En **Integrar calendario**, copia el ID del
-   calendario.
-3. Crea una clave JSON para esa cuenta de servicio. Guarda la clave completa
-   como `GOOGLE_CALENDAR_SERVICE_ACCOUNT` y el ID del calendario como
-   `GOOGLE_CALENDAR_ID` en los
-   [secretos de GitHub Actions](https://github.com/ManelPNavarro/family-board/settings/secrets/actions).
-4. Ejecuta el workflow **Family Board** en `main`. Abre el panel con tu sesión
-   de Access y compara la agenda con el calendario original.
+1. In a Google Cloud project, enable the **Google Calendar API** and create a
+   service account for Family Board. It needs no project IAM roles or
+   domain-wide delegation.
+2. In Google Calendar, open **Settings and sharing** for the family calendar.
+   Add the service account's email with **See all event details** permission.
+   Under **Integrate calendar**, copy the calendar ID.
+3. Create a JSON key for the service account. Save the full JSON key as
+   `GOOGLE_CALENDAR_SERVICE_ACCOUNT` and the calendar ID as
+   `GOOGLE_CALENDAR_ID` in
+   [GitHub Actions secrets](https://github.com/ManelPNavarro/family-board/settings/secrets/actions).
+4. Run the **Family Board** workflow on `main`. Sign in through Cloudflare
+   Access and compare the agenda with the original calendar.
 
-El Worker obtiene un token de corta duración con alcance de solo lectura de
-eventos. Devuelve el título y la hora, respeta los eventos privados y no
-almacena eventos en D1. Para retirar el acceso a los datos, elimina el permiso
-de la cuenta de servicio en Google Calendar o revoca la clave en Google Cloud.
-Para limpiar también los dos secretos de ejecución, elimínalos del Worker
-además de eliminarlos de GitHub Actions.
+The Worker obtains a short-lived token with read-only access to events. It
+returns event titles and times, hides private event titles, and stores no
+events in D1. To revoke access, remove the service account from the calendar
+or revoke its key in Google Cloud. To remove the stored configuration,
+delete the two secrets from both GitHub Actions and the Worker.
 
-- [Compartir un calendario](https://support.google.com/calendar/answer/37082)
-- [Crear una cuenta de servicio](https://docs.cloud.google.com/iam/docs/service-accounts-create)
-- [Crear una clave JSON](https://docs.cloud.google.com/iam/docs/keys-create-delete)
+- [Share a Google Calendar](https://support.google.com/calendar/answer/37082)
+- [Create a service account](https://docs.cloud.google.com/iam/docs/service-accounts-create)
+- [Create a JSON key](https://docs.cloud.google.com/iam/docs/keys-create-delete)
 
-## Llista de la compra
+## Shopping list
 
-La pàgina `/compra/` obre la llista directament. El manifest permet afegir-la
-a la pantalla d’inici del mòbil. La llista és compartida per tots els usuaris
-autoritzats a Family Board i usa la mateixa base D1 que el Worker.
+Open `/compra/` to go directly to the shopping list. Its web app manifest
+lets you add it to a phone's home screen. Everyone authorized to use
+Family Board shares the same list, stored in the Worker's D1 database.
 
-Per preparar una base nova, aplica les migracions del directori `migrations/`
-abans de desplegar la versió que les necessita. Amb una sessió de Wrangler
-autoritzada per a D1 i la configuració generada amb `npm run deploy:config`:
+For a new database, apply the migrations in `migrations/` before deploying
+the version that needs them. Sign in to Wrangler with D1 access and generate
+the deployment configuration with `npm run deploy:config`, then run:
 
 ```sh
 npx wrangler d1 migrations apply DB --remote --config .wrangler.deploy.json
 ```
 
-## El temps
+## Weather
 
-`Avui` mostra les dades d’[Open-Meteo](https://open-meteo.com/) si el
-desplegament rep el secret `WEATHER_LOCATION` de GitHub Actions. El secret és
-un objecte JSON amb `name`, `latitude` i `longitude`. Feu servir les coordenades
-aproximades del municipi. El Worker consulta el servei i reutilitza la previsió
-durant 15 minuts. La probabilitat és el màxim previst per a una hora del dia.
+The home view shows a forecast from [Open-Meteo](https://open-meteo.com/)
+when the deployment receives the `WEATHER_LOCATION` GitHub Actions secret.
+Set it to a JSON object with `name`, `latitude`, and `longitude`, using
+approximate coordinates for the municipality. Run the **Family Board**
+workflow on `main` to apply the setting.
+
+The Worker caches the forecast for 15 minutes. The precipitation percentage
+is the highest hourly probability forecast for the day.

@@ -6,7 +6,7 @@ import { grocerySuggestions } from '../shared/grocery-suggestions.js';
 import { groceryProduceDefault, isFreshProduce } from '../shared/grocery-produce.js';
 import { groceries } from './groceries.js';
 
-test('la llista compartida conserva les edicions i rebutja les escriptures d’altres orígens', async () => {
+test('the shared list persists edits and rejects cross-origin writes', async () => {
   const db = new DatabaseSync(':memory:');
   db.exec(await readFile(new URL('../migrations/0001_groceries.sql', import.meta.url), 'utf8'));
   const existing = '12345678-1234-4567-89ab-123456789013';
@@ -84,7 +84,7 @@ test('la llista compartida conserva les edicions i rebutja les escriptures d’a
 });
 
 
-test('els suggeriments ignoren accents, prioritzen l’inici i amaguen els pendents', () => {
+test('suggestions ignore accents, rank prefix matches first, and hide active items', () => {
   const history = ['Pa de cafè', 'Cafè', 'Cafe', 'Cafetera', 'Llet'];
   assert.deepEqual(grocerySuggestions(' cAf ', history, [{ title: 'Cafetera' }]), ['Cafè', 'Pa de cafè']);
   assert.deepEqual(grocerySuggestions('cafe', history, []), ['Cafè', 'Cafetera', 'Pa de cafè']);
@@ -92,7 +92,7 @@ test('els suggeriments ignoren accents, prioritzen l’inici i amaguen els pende
 });
 
 
-test('detecta productes frescos en català sense classificar derivats habituals', () => {
+test('detects fresh produce in Catalan and excludes common prepared products', () => {
   for (const title of ['POMES', 'tomàquet de penjar', '1,5 kg de taronges', "2 kg d’alvocats", 'mongeta tendra']) {
     assert.equal(isFreshProduce(title), true, title);
   }
@@ -102,7 +102,7 @@ test('detecta productes frescos en català sense classificar derivats habituals'
 });
 
 
-test('comparteix la categoria del singular i el plural mantenint les tries exactes', () => {
+test('shares categories across singular and plural forms and preserves exact choices', () => {
   assert.equal(isFreshProduce('plàtan'), true);
   assert.equal(isFreshProduce('PLÀTANS'), true);
   assert.equal(groceryProduceDefault('2 kg de plàtans', [{ title: 'Plàtan', produce: true }]), true);
