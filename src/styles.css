@@ -494,6 +494,17 @@ a:focus-visible {
   }
 }
 
+@media (width < 641px) {
+  .grocery-add-dialog {
+    inset: calc(var(--add-viewport-top, 0px) + var(--add-viewport-height, 100dvh) / 2) 0 auto;
+    translate: 0 -50%;
+    width: calc(100% - 2rem);
+    max-height: min(40rem, calc(var(--add-viewport-height, 100dvh) - 2rem));
+    border-radius: 1.3rem;
+    padding: 1rem;
+  }
+}
+
 .task-check { min-height: 4.3rem; }
 .task-summary { min-width: 0; }
 .task-title { display: block; }

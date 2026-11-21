@@ -31,6 +31,27 @@ export function GroceryList() {
   const firstSuggestion = useRef(null);
   const historyRequest = useRef(null);
 
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!adding || !viewport) return;
+
+    const dialog = addDialog.current;
+    const updateViewport = () => {
+      dialog.style.setProperty('--add-viewport-height', `${viewport.height}px`);
+      dialog.style.setProperty('--add-viewport-top', `${viewport.offsetTop}px`);
+    };
+
+    updateViewport();
+    viewport.addEventListener('resize', updateViewport);
+    viewport.addEventListener('scroll', updateViewport);
+    return () => {
+      viewport.removeEventListener('resize', updateViewport);
+      viewport.removeEventListener('scroll', updateViewport);
+      dialog.style.removeProperty('--add-viewport-height');
+      dialog.style.removeProperty('--add-viewport-top');
+    };
+  }, [adding]);
+
   async function loadHistory() {
     historyRequest.current?.abort();
     const controller = new AbortController();
@@ -220,7 +241,7 @@ export function GroceryList() {
       </header>
       <dialog
         ref={addDialog}
-        className="grocery-dialog"
+        className="grocery-dialog grocery-add-dialog"
         aria-labelledby="grocery-dialog-title"
         onClose={onDialogClose}
         onBlur={(event) => {
