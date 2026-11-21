@@ -121,7 +121,7 @@ export function GroceryList({ standalone = false }) {
 
   function renderItem(item) {
     return (
-      <li className="grocery-item" key={item.id}>
+      <li className={`grocery-item${item.checked ? ' grocery-item-checked' : ''}`} key={item.id}>
         {editing?.id === item.id ? (
           <form className="grocery-edit" onSubmit={rename}>
             <input aria-label="Nom del producte" maxLength={120} value={editing.title} autoFocus
@@ -136,10 +136,12 @@ export function GroceryList({ standalone = false }) {
                 onChange={(event) => void write('PATCH', item.id, { checked: event.target.checked })} />
               <span>{item.title}</span>
             </label>
-            <button type="button" disabled={busy || !enabled} aria-label={`Edita ${item.title}`}
-              onClick={() => setEditing(item)}><Pencil size={18} /></button>
-            <button type="button" disabled={busy || !enabled} aria-label={`Elimina ${item.title}`}
-              onClick={() => void write('DELETE', item.id)}><Trash2 size={18} /></button>
+            <div className="grocery-actions">
+              <button type="button" disabled={busy || !enabled} aria-label={`Edita ${item.title}`}
+                onClick={() => setEditing(item)}><Pencil size={16} aria-hidden="true" /></button>
+              <button type="button" disabled={busy || !enabled} aria-label={`Elimina ${item.title}`}
+                onClick={() => void write('DELETE', item.id)}><Trash2 size={16} aria-hidden="true" /></button>
+            </div>
           </>
         )}
       </li>
@@ -148,8 +150,8 @@ export function GroceryList({ standalone = false }) {
 
   return (
     <section className="card groceries" aria-labelledby="groceries">
-      <header className="card-header">
-        <ShoppingBasket size={25} aria-hidden="true" />
+      <header className="card-header grocery-heading">
+        <span className="grocery-symbol"><ShoppingBasket size={23} aria-hidden="true" /></span>
         <Heading id="groceries">Llista de la compra</Heading>
       </header>
       <form className="grocery-add" onSubmit={add}>
@@ -158,12 +160,19 @@ export function GroceryList({ standalone = false }) {
         <button type="submit" disabled={!enabled || busy || !draft.trim()}><Plus size={18} aria-hidden="true" /> Afegeix</button>
       </form>
       {message && <p className="agenda-message" role="status">{messages[message]}</p>}
-      {items?.length === 0 && <p className="agenda-message">La llista és buida.</p>}
-      {active.length > 0 && <ul aria-label="Productes pendents">{active.map(renderItem)}</ul>}
+      {items?.length === 0 && <p className="grocery-empty">La llista és buida.</p>}
+      {items?.length > 0 && (
+        <section className="grocery-group" aria-labelledby="grocery-pending">
+          <h3 id="grocery-pending">Pendents <span>{active.length}</span></h3>
+          {active.length > 0
+            ? <ul className="grocery-items" aria-labelledby="grocery-pending">{active.map(renderItem)}</ul>
+            : <p className="grocery-empty">Ja ho heu comprat tot.</p>}
+        </section>
+      )}
       {checked.length > 0 && (
-        <section className="grocery-checked" aria-label="Productes comprats">
-          <h3>Comprats</h3>
-          <ul>{checked.map(renderItem)}</ul>
+        <section className="grocery-group grocery-checked" aria-labelledby="grocery-done">
+          <h3 id="grocery-done">Comprats <span>{checked.length}</span></h3>
+          <ul className="grocery-items" aria-labelledby="grocery-done">{checked.map(renderItem)}</ul>
         </section>
       )}
     </section>
