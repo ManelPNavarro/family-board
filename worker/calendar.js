@@ -48,7 +48,7 @@ export function eventsByDay(events, days) {
     const timed = [];
 
     for (const event of events) {
-      const title = event.visibility === 'private' ? 'Ocupado' : event.summary || 'Sin título';
+      const title = event.visibility === 'private' ? 'Ocupat' : event.summary || 'Sense títol';
       if (event.start?.date && event.end?.date) {
         if (event.start.date <= day.date && day.date < event.end.date) {
           allDay.push({ id: event.id, title, start: null });

@@ -5,12 +5,12 @@ import { dayKey, timeZone } from '../shared/dates.js';
 import { Agenda } from './agenda.jsx';
 import './styles.css';
 
-const clock = new Intl.DateTimeFormat('es-ES', {
+const clock = new Intl.DateTimeFormat('ca-ES', {
   timeZone,
   hour: '2-digit',
   minute: '2-digit',
 });
-const date = new Intl.DateTimeFormat('es-ES', {
+const date = new Intl.DateTimeFormat('ca-ES', {
   timeZone,
   weekday: 'long',
   day: 'numeric',
@@ -18,21 +18,22 @@ const date = new Intl.DateTimeFormat('es-ES', {
 });
 
 const pages = [
-  { id: 'hoy', label: 'Hoy', icon: House },
-  { id: 'calendario', label: 'Calendario', icon: CalendarDays },
+  { id: 'avui', label: 'Avui', icon: House },
+  { id: 'calendari', label: 'Calendari', icon: CalendarDays },
   { id: 'compra', label: 'Compra', icon: ShoppingBasket },
 ];
-const sampleItems = ['Pan', 'Tomates', 'Yogur natural', 'Manzanas'];
+const sampleItems = ['Pa', 'Tomàquets', 'Iogurt natural', 'Pomes'];
 
 function currentPage() {
-  const id = window.location.hash.slice(1);
-  return pages.some((page) => page.id === id) ? id : 'hoy';
+  const hash = window.location.hash.slice(1);
+  const id = hash === 'calendario' ? 'calendari' : hash;
+  return pages.some((page) => page.id === id) ? id : 'avui';
 }
 
 function App() {
   const [now, setNow] = useState(() => new Date());
   const [page, setPage] = useState(currentPage);
-  const [status, setStatus] = useState({ label: 'Comprobando versión' });
+  const [status, setStatus] = useState({ label: 'S’està comprovant la versió' });
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(new Date()), 15_000);
@@ -58,17 +59,17 @@ function App() {
           signal: controller.signal,
         });
         if (response.redirected || response.status === 401 || response.status === 403) {
-          setStatus({ label: 'Actualiza la página para renovar la sesión' });
+          setStatus({ label: 'Actualitza la pàgina per renovar la sessió' });
           return;
         }
         if (!response.ok && response.status !== 503) throw new Error();
         const { commit, database } = await response.json();
         setStatus({
-          label: database === 'ready' ? 'D1 conectado' : 'D1 no disponible',
+          label: database === 'ready' ? 'D1 connectat' : 'D1 no disponible',
           commit: commit?.slice(0, 7),
         });
       } catch {
-        if (!controller.signal.aborted) setStatus({ label: 'Versión no disponible' });
+        if (!controller.signal.aborted) setStatus({ label: 'Versió no disponible' });
       }
     }
     void loadStatus();
@@ -78,8 +79,8 @@ function App() {
   return (
     <main className="board">
       <header className="topbar">
-        <a className="brand" href="#hoy"><House size={22} aria-hidden="true" /> Family Board</a>
-        <nav aria-label="Secciones">
+        <a className="brand" href="#avui"><House size={22} aria-hidden="true" /> Family Board</a>
+        <nav aria-label="Seccions">
           {pages.map(({ id, label, icon: Icon }) => (
             <a key={id} href={`#${id}`} aria-current={page === id ? 'page' : undefined}>
               <Icon size={19} aria-hidden="true" />
@@ -91,20 +92,20 @@ function App() {
 
       <section className="hero">
         <div>
-          <p className="date capitalize">{date.format(now)}</p>
+          <p className="date calendar-date">{date.format(now)}</p>
           <h1>{pages.find(({ id }) => id === page).label}</h1>
         </div>
         <time dateTime={now.toISOString()} className="clock">{clock.format(now)}</time>
       </section>
 
-      <div className={`panels ${page === 'hoy' ? 'overview' : ''}`}>
-        {page !== 'compra' && <Agenda today={dayKey(now)} week={page === 'calendario'} />}
-        {page !== 'calendario' && (
+      <div className={`panels ${page === 'avui' ? 'overview' : ''}`}>
+        {page !== 'compra' && <Agenda today={dayKey(now)} week={page === 'calendari'} />}
+        {page !== 'calendari' && (
           <section className="card groceries" aria-labelledby="groceries">
             <header className="card-header">
               <ShoppingBasket size={25} aria-hidden="true" />
-              <h2 id="groceries">Lista de la compra</h2>
-              <span className="sample-label">Ejemplo</span>
+              <h2 id="groceries">Llista de la compra</h2>
+              <span className="sample-label">Exemple</span>
             </header>
             <ul>
               {sampleItems.map((item) => <li key={item}>{item}</li>)}

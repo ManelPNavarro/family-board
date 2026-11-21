@@ -56,11 +56,11 @@ test('lee solo el calendario configurado y agrupa eventos en días de Madrid', a
     date: '2026-10-25',
     events: [
       { id: 'all-day', title: 'Cumpleaños', start: null },
-      { id: 'private', title: 'Ocupado', start: '2026-10-25T23:30:00+01:00', continues: false },
+      { id: 'private', title: 'Ocupat', start: '2026-10-25T23:30:00+01:00', continues: false },
     ],
   });
   assert.deepEqual(days[1], {
     date: '2026-10-26',
-    events: [{ id: 'private', title: 'Ocupado', start: '2026-10-25T23:30:00+01:00', continues: true }],
+    events: [{ id: 'private', title: 'Ocupat', start: '2026-10-25T23:30:00+01:00', continues: true }],
   });
 });

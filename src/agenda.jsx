@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { CalendarDays } from 'lucide-react';
 import { timeZone } from '../shared/dates.js';
 
-const time = new Intl.DateTimeFormat('es-ES', {
+const time = new Intl.DateTimeFormat('ca-ES', {
   timeZone,
   hour: '2-digit',
   minute: '2-digit',
 });
-const headingDate = new Intl.DateTimeFormat('es-ES', {
+const headingDate = new Intl.DateTimeFormat('ca-ES', {
   timeZone: 'UTC',
   weekday: 'long',
   day: 'numeric',
@@ -15,10 +15,10 @@ const headingDate = new Intl.DateTimeFormat('es-ES', {
 });
 
 const calendarMessages = {
-  loading: 'Cargando el calendario familiar…',
-  not_configured: 'Pendiente de conectar con Google Calendar.',
-  unavailable: 'No se pudo cargar el calendario familiar. Se volverá a intentar automáticamente.',
-  session: 'Actualiza la página para renovar la sesión.',
+  loading: 'S’està carregant el calendari familiar…',
+  not_configured: 'Pendent de connectar amb Google Calendar.',
+  unavailable: 'No s’ha pogut carregar el calendari familiar. Es tornarà a provar automàticament.',
+  session: 'Actualitza la pàgina per renovar la sessió.',
 };
 
 export function Agenda({ today, week }) {
@@ -76,20 +76,20 @@ export function Agenda({ today, week }) {
     <section className="card agenda" aria-labelledby="agenda">
       <header className="card-header">
         <CalendarDays size={24} aria-hidden="true" />
-        <h2 id="agenda">{week ? 'Próximos siete días' : 'Agenda de hoy'}</h2>
+        <h2 id="agenda">{week ? 'Pròxims set dies' : 'Agenda d’avui'}</h2>
       </header>
       {calendar.status !== 'ready'
         ? <p className="agenda-message" role="status">{calendarMessages[calendar.status]}</p>
         : days.map(({ date, events }) => (
           <section className="agenda-day" key={date}>
-            {week && <h3 className="capitalize">{headingDate.format(new Date(`${date}T00:00:00Z`))}</h3>}
+            {week && <h3 className="calendar-date">{headingDate.format(new Date(`${date}T00:00:00Z`))}</h3>}
             {events.length === 0
-              ? <p className="agenda-message">Sin eventos.</p>
+              ? <p className="agenda-message">Sense esdeveniments.</p>
               : <ul>{events.map((event) => (
                 <li key={event.id} className="event">
                   {event.start && !event.continues
                     ? <time dateTime={event.start}>{time.format(new Date(event.start))}</time>
-                    : <span>{event.continues ? 'En curso' : 'Todo el día'}</span>}
+                    : <span>{event.continues ? 'En curs' : 'Tot el dia'}</span>}
                   <strong>{event.title}</strong>
                 </li>
               ))}</ul>}

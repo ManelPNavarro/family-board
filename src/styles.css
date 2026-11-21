@@ -102,3 +102,5 @@ h2 { font-size: clamp(1.25rem, 3vw, 1.65rem); font-weight: 700; }
 .agenda-message { color: #486454; padding-block: .5rem; }
 .event strong { overflow-wrap: anywhere; }
 .sample-label { margin-left: auto; color: #486454; font-size: .875rem; }
+
+.calendar-date::first-letter { text-transform: uppercase; }

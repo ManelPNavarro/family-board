@@ -38,7 +38,7 @@ export default {
     };
 
     if (!await verifyAccess(request, env)) {
-      return new Response('Acceso restringido', { status: 403, headers });
+      return new Response('Accés restringit', { status: 403, headers });
     }
 
     if (request.method !== 'GET' && request.method !== 'HEAD') {
