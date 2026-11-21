@@ -3,8 +3,10 @@ import { createRoot } from 'react-dom/client';
 import { CalendarDays, ChevronLeft, House, ShoppingBasket } from 'lucide-react';
 import { dayKey, timeZone } from '../shared/dates.js';
 import { Agenda } from './agenda.jsx';
+import { Alerts } from './alerts.jsx';
 import { GroceryList } from './groceries.jsx';
-import { Weather } from './weather.jsx';
+import { Weather, useWeather } from './weather.jsx';
+import { weatherAlerts } from './weather-alerts.js';
 import './styles.css';
 
 const clock = new Intl.DateTimeFormat('ca-ES', {
@@ -31,19 +33,37 @@ function currentPage() {
   return pages.some((page) => page.id === id) ? id : 'avui';
 }
 
-function App() {
+function FamilyBoard() {
   const [now, setNow] = useState(() => new Date());
+  const today = dayKey(now);
+  const weather = useWeather(today);
+
+  useEffect(() => {
+    const updateClock = () => setNow(new Date());
+    const interval = window.setInterval(updateClock, 15_000);
+    document.addEventListener('visibilitychange', updateClock);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', updateClock);
+    };
+  }, []);
+
+  return (
+    <>
+      {standalone ? <ShoppingPage /> : <App now={now} today={today} weather={weather} />}
+      <Alerts alerts={weatherAlerts(weather, today)} />
+    </>
+  );
+}
+
+function App({ now, today, weather }) {
   const [page, setPage] = useState(currentPage);
   const [status, setStatus] = useState({ label: 'S’està comprovant la versió' });
 
   useEffect(() => {
-    const interval = window.setInterval(() => setNow(new Date()), 15_000);
     const handleHash = () => setPage(currentPage());
     window.addEventListener('hashchange', handleHash);
-    return () => {
-      window.clearInterval(interval);
-      window.removeEventListener('hashchange', handleHash);
-    };
+    return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
   useEffect(() => {
@@ -79,8 +99,6 @@ function App() {
 
   if (page === 'compra') return <ShoppingPage />;
 
-  const today = dayKey(now);
-
   return (
     <main className="board">
       <header className="topbar">
@@ -103,7 +121,7 @@ function App() {
         <time dateTime={now.toISOString()} className="clock">{clock.format(now)}</time>
       </section>
 
-      {page === 'avui' && <Weather today={today} />}
+      {page === 'avui' && <Weather weather={weather} today={today} />}
       <Agenda today={today} week={page === 'calendari'} />
 
       <footer className="footer">
@@ -123,4 +141,4 @@ function ShoppingPage() {
 }
 
 const standalone = window.location.pathname.startsWith('/compra');
-createRoot(document.getElementById('root')).render(standalone ? <ShoppingPage /> : <App />);
+createRoot(document.getElementById('root')).render(<FamilyBoard />);

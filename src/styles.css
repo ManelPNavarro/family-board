@@ -378,3 +378,55 @@ h2 { font-size: clamp(1.25rem, 3vw, 1.65rem); font-weight: 700; }
 .weather-details dd { font-weight: 700; font-variant-numeric: tabular-nums; }
 .weather-source { margin-top: .65rem; color: #486454; font-size: .8125rem; }
 .weather-source a { text-decoration: underline; text-underline-offset: .15em; }
+
+.alerts-dialog {
+  position: fixed;
+  inset: 0;
+  width: min(calc(100% - 2rem), 27rem);
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  overflow-y: auto;
+  padding: clamp(1rem, 4vw, 1.5rem);
+  border: 1px solid #d2dfd2;
+  border-radius: 1.3rem;
+  background: #fff;
+  color: #163627;
+  box-shadow: 0 16px 44px #16362735;
+}
+
+.alerts-dialog::backdrop { background: #0c2319a0; }
+.alert-list { display: grid; gap: .6rem; margin-block: .8rem 1rem; }
+.alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  padding: .8rem;
+  border-radius: .85rem;
+  background: #f1f5ed;
+}
+
+.alert-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: .65rem;
+  background: #dcebd9;
+}
+
+.alert-item h3 { font-size: 1.05rem; font-weight: 700; overflow-wrap: anywhere; }
+.alert-item p { color: #436352; }
+.alert-dismiss {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  border-radius: .7rem;
+  background: #163627;
+  color: #fff;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.alert-dismiss:hover { background: #235438; }
+.alert-dismiss:focus-visible { outline: 2px solid #1d6947; outline-offset: 3px; }

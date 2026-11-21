@@ -17,7 +17,7 @@ function describeWeather(code, isDay) {
 
 const degrees = (value) => Number.isFinite(value) ? `${temperature.format(value)}°` : '—';
 
-export function Weather({ today }) {
+export function useWeather(today) {
   const [weather, setWeather] = useState({ status: 'loading' });
 
   useEffect(() => {
@@ -57,6 +57,10 @@ export function Weather({ today }) {
     };
   }, [today]);
 
+  return weather;
+}
+
+export function Weather({ weather, today }) {
   if (weather.status === 'not_configured' || weather.status === 'loading') return null;
   if (weather.status !== 'ready' || weather.date !== today) {
     return (
