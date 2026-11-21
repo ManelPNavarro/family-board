@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, Leaf, Pencil, Plus, ShoppingBasket, Trash2, X } from 'lucide-react';
 import { grocerySuggestions, searchKey } from '../shared/grocery-suggestions.js';
+import { isFreshProduce } from '../shared/grocery-produce.js';
 
 const path = '/api/groceries';
 const messages = {
@@ -125,12 +126,14 @@ export function GroceryList({ standalone = false }) {
     event.preventDefault();
     const title = draft.trim();
     if (!title || pending.current) return;
-    const produce = draftProduce ?? rememberedProduce;
     if (creation.current?.title !== title) {
       creation.current = { id: crypto.randomUUID(), title };
     }
 
-    if (await write('POST', null, { ...creation.current, produce })) {
+    const classification = draftProduce === null
+      ? { suggestedProduce: defaultProduce }
+      : { produce: draftProduce };
+    if (await write('POST', null, { ...creation.current, ...classification })) {
       creation.current = null;
       setDraft('');
       setDraftProduce(null);
@@ -156,7 +159,7 @@ export function GroceryList({ standalone = false }) {
   const draftKey = searchKey(draft);
   const knownProduct = history.find(({ title }) => title.toLocaleLowerCase('ca') === draft.trim().toLocaleLowerCase('ca'))
     ?? history.find(({ title }) => searchKey(title) === draftKey);
-  const rememberedProduce = knownProduct?.produce;
+  const defaultProduce = knownProduct?.produce ?? isFreshProduce(draft);
   const suggestions = suggestionsOpen && enabled && !busy
     ? grocerySuggestions(draft, history.map(({ title }) => title), active)
     : [];
@@ -237,7 +240,7 @@ export function GroceryList({ standalone = false }) {
           <button type="submit" disabled={!enabled || busy || !draft.trim()}><Plus size={18} aria-hidden="true" /> Afegeix</button>
         </form>
         <label className="grocery-produce-toggle grocery-add-produce">
-          <input type="checkbox" checked={draftProduce ?? rememberedProduce ?? false} disabled={busy || !enabled}
+          <input type="checkbox" checked={draftProduce ?? defaultProduce} disabled={busy || !enabled}
             onChange={(event) => setDraftProduce(event.target.checked)} />
           Fruita o verdura
         </label>

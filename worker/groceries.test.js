@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 import { grocerySuggestions } from '../shared/grocery-suggestions.js';
+import { isFreshProduce } from '../shared/grocery-produce.js';
 import { groceries } from './groceries.js';
 
 test('la llista compartida conserva les edicions i rebutja les escriptures d’altres orígens', async () => {
@@ -74,6 +75,11 @@ test('la llista compartida conserva les edicions i rebutja les escriptures d’a
   assert.equal((await send('PATCH', `/${existing}`, { title: 'Peres', produce: true })).status, 200);
   const { products } = await (await send('GET', '/history')).json();
   assert.deepEqual(products.find(({ title }) => title === 'Peres'), { title: 'Peres', produce: true });
+  assert.equal((await send('POST', '', { id, title: 'Pomes', suggestedProduce: true })).status, 201);
+  assert.equal((await (await send('GET')).json()).items.find((entry) => entry.id === id).produce, false);
+  assert.equal((await send('DELETE', `/${id}`)).status, 204);
+  assert.equal((await send('POST', '', { id, title: 'Mandarines', suggestedProduce: true })).status, 201);
+  assert.equal((await (await send('GET')).json()).items.find((entry) => entry.id === id).produce, true);
   db.close();
 });
 
@@ -83,4 +89,14 @@ test('els suggeriments ignoren accents, prioritzen l’inici i amaguen els pende
   assert.deepEqual(grocerySuggestions(' cAf ', history, [{ title: 'Cafetera' }]), ['Cafè', 'Pa de cafè']);
   assert.deepEqual(grocerySuggestions('cafe', history, []), ['Cafè', 'Cafetera', 'Pa de cafè']);
   assert.deepEqual(grocerySuggestions('', history, []), []);
+});
+
+
+test('detecta productes frescos en català sense classificar derivats habituals', () => {
+  for (const title of ['POMES', 'tomàquet de penjar', '1,5 kg de taronges', "2 kg d’alvocats", 'mongeta tendra']) {
+    assert.equal(isFreshProduce(title), true, title);
+  }
+  for (const title of ['', 'caldo de verdures', 'iogurt de maduixa', 'patates xips', 'pèsols congelats', 'tomàquet triturat', 'tomàquet fregit', 'mongetes seques']) {
+    assert.equal(isFreshProduce(title), false, title);
+  }
 });

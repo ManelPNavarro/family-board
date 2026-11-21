@@ -75,14 +75,15 @@ export async function groceries(request, db, headers) {
       }
 
       const statements = [];
-      if (hasProduce) {
-        // Only a new item may change its product category on creation.
+      const suggestedProduce = body.suggestedProduce === true;
+      if (hasProduce || suggestedProduce) {
+        // A suggestion may initialize a product's category. Only a manual choice may override it.
         statements.push(db.prepare(`
           INSERT INTO grocery_history (name_key, title, times_added, last_seen, produce)
           SELECT lower(trim(?)), ?, 0, 0, ?
           WHERE NOT EXISTS (SELECT 1 FROM grocery_items WHERE id = ?)
-          ON CONFLICT(name_key) DO UPDATE SET produce = excluded.produce
-        `).bind(title, title, Number(body.produce), body.id));
+          ON CONFLICT(name_key) DO UPDATE SET produce = excluded.produce WHERE ?
+        `).bind(title, title, Number(hasProduce ? body.produce : suggestedProduce), body.id, Number(hasProduce)));
       }
       statements.push(
         db.prepare('INSERT INTO grocery_items (id, title) VALUES (?, ?) ON CONFLICT(id) DO NOTHING')
