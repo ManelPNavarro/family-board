@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Check, Leaf, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { grocerySuggestions } from '../shared/grocery-suggestions.js';
 import { groceryProduceDefault } from '../shared/grocery-produce.js';
+import { api } from './api.js';
 
 const path = '/api/groceries';
 const messages = {
@@ -10,19 +11,6 @@ const messages = {
   unavailable: 'No s’ha pogut carregar la llista.',
   save: 'No s’ha pogut desar el canvi. Torna-ho a provar.',
 };
-
-async function api(url, options) {
-  const response = await fetch(url, {
-    cache: 'no-store',
-    redirect: 'manual',
-    ...options,
-  });
-  if (response.type === 'opaqueredirect' || response.status === 401 || response.status === 403) {
-    throw new Error('session');
-  }
-  if (!response.ok) throw new Error('unavailable');
-  return response.status === 204 ? null : response.json();
-}
 
 export function GroceryList() {
   const [items, setItems] = useState(null);

@@ -1,6 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { getFamilyCalendar } from './calendar.js';
 import { groceries } from './groceries.js';
+import { tasks } from './tasks.js';
 import { getWeather } from './weather.js';
 
 let accessKeys;
@@ -46,6 +47,9 @@ export default {
     const { pathname } = new URL(request.url);
     if (pathname === '/api/groceries' || pathname.startsWith('/api/groceries/')) {
       return groceries(request, env.DB, headers);
+    }
+    if (pathname === '/api/tasks' || pathname.startsWith('/api/tasks/')) {
+      return tasks(request, env.DB, headers);
     }
 
     if (request.method !== 'GET' && request.method !== 'HEAD') {

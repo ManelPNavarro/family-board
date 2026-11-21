@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CalendarDays, House, Menu, ShoppingBasket } from 'lucide-react';
+import { CalendarDays, House, ListChecks, Menu, ShoppingBasket } from 'lucide-react';
 import { dayKey, timeZone } from '../shared/dates.js';
 import { Agenda } from './agenda.jsx';
 import { Alerts } from './alerts.jsx';
 import { GroceryList } from './groceries.jsx';
+import { Tasks } from './tasks.jsx';
 import { Weather, useWeather } from './weather.jsx';
 import { weatherAlerts } from './weather-alerts.js';
 import './styles.css';
@@ -25,6 +26,7 @@ const pages = [
   { id: 'avui', label: 'Avui', icon: House },
   { id: 'calendari', label: 'Calendari', icon: CalendarDays },
   { id: 'compra', label: 'Compra', icon: ShoppingBasket },
+  { id: 'tasques', label: 'Tasques', icon: ListChecks },
 ];
 const navigationPreference = 'family-board:hide-navigation';
 // Use hash links within the installed shopping shortcut's /compra/ scope.
@@ -151,7 +153,7 @@ function App({ now, today, weather }) {
       </header>
 
       <main className="dashboard-main">
-        {page === 'compra' ? <GroceryList /> : (
+        {page === 'compra' ? <GroceryList /> : page === 'tasques' ? <Tasks today={today} /> : (
           <>
             <header className="dashboard-heading">
               <div>
