@@ -100,10 +100,13 @@ function App({ now, today, weather }) {
   if (page === 'compra') return <ShoppingPage />;
 
   return (
-    <main className="board">
-      <header className="topbar">
-        <a className="brand" href="#avui"><House size={22} aria-hidden="true" /> Family Board</a>
-        <nav aria-label="Seccions">
+    <div className="dashboard">
+      <header className="dashboard-navigation">
+        <a className="brand" href="#avui">
+          <span className="brand-icon"><House size={20} aria-hidden="true" /></span>
+          Family Board
+        </a>
+        <nav className="dashboard-links" aria-label="Seccions">
           {pages.map(({ id, label, icon: Icon, href }) => (
             <a key={id} href={href ?? `#${id}`} aria-current={page === id ? 'page' : undefined}>
               <Icon size={19} aria-hidden="true" />
@@ -113,27 +116,31 @@ function App({ now, today, weather }) {
         </nav>
       </header>
 
-      <section className="hero">
-        <div>
-          <p className="date calendar-date">{date.format(now)}</p>
-          <h1>{pages.find(({ id }) => id === page).label}</h1>
+      <main className="dashboard-main">
+        <header className="dashboard-heading">
+          <div>
+            <time dateTime={today} className="dashboard-date calendar-date">{date.format(now)}</time>
+            <h1>{pages.find(({ id }) => id === page).label}</h1>
+          </div>
+          <time dateTime={now.toISOString()} className="dashboard-clock">{clock.format(now)}</time>
+        </header>
+
+        <div className="dashboard-content">
+          <Agenda today={today} week={page === 'calendari'} />
+          {page === 'avui' && <Weather weather={weather} today={today} />}
         </div>
-        <time dateTime={now.toISOString()} className="clock">{clock.format(now)}</time>
-      </section>
 
-      {page === 'avui' && <Weather weather={weather} today={today} />}
-      <Agenda today={today} week={page === 'calendari'} />
-
-      <footer className="footer">
-        <span role="status">{status.label}{status.commit && <> · <code>{status.commit}</code></>}</span>
-      </footer>
-    </main>
+        <footer className="dashboard-footer">
+          <span role="status">{status.label}{status.commit && <> · <code>{status.commit}</code></>}</span>
+        </footer>
+      </main>
+    </div>
   );
 }
 
 function ShoppingPage() {
   return (
-    <main className="board shopping-page">
+    <main className="shopping-page">
       <a className="shopping-back" href="/"><ChevronLeft size={18} aria-hidden="true" /> Family Board</a>
       <GroceryList standalone />
     </main>

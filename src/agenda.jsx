@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarDays } from 'lucide-react';
+import { ArrowRight, CalendarDays } from 'lucide-react';
 import { timeZone } from '../shared/dates.js';
 
 const time = new Intl.DateTimeFormat('ca-ES', {
@@ -75,11 +75,17 @@ export function Agenda({ today, week }) {
   return (
     <section className="card agenda" aria-labelledby="agenda">
       <header className="card-header">
-        <CalendarDays size={24} aria-hidden="true" />
+        <span className="dashboard-card-icon"><CalendarDays size={21} aria-hidden="true" /></span>
         <h2 id="agenda">{week ? 'Pròxims set dies' : 'Agenda d’avui'}</h2>
+        {!week && (
+          <a className="agenda-link" href="#calendari">
+            Veure setmana <ArrowRight size={16} aria-hidden="true" />
+          </a>
+        )}
       </header>
       {calendar.status !== 'ready'
         ? <p className="agenda-message" role="status">{calendarMessages[calendar.status]}</p>
+        : days.length === 0 ? <p className="agenda-message">Sense esdeveniments.</p>
         : days.map(({ date, events }) => (
           <section className="agenda-day" key={date}>
             {week && <h3 className="calendar-date">{headingDate.format(new Date(`${date}T00:00:00Z`))}</h3>}

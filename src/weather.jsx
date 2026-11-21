@@ -79,24 +79,26 @@ export function Weather({ weather, today }) {
       </header>
       <div className="weather-summary">
         <div className="weather-current">
-          <Icon size={32} aria-hidden="true" />
-          <div>
-            <strong>{degrees(weather.temperature)}</strong>
+          <div className="weather-readout">
+            <strong>{degrees(weather.temperature)}<span className="sr-only"> Celsius</span></strong>
             <span className="weather-sky">{description}</span>
           </div>
-          <span className="weather-range">Mín. {degrees(weather.minimum)} · Màx. {degrees(weather.maximum)}</span>
+          <span className="weather-icon"><Icon size={42} strokeWidth={1.55} aria-hidden="true" /></span>
         </div>
+        <p className="weather-range">Mín. {degrees(weather.minimum)} · Màx. {degrees(weather.maximum)}</p>
         <dl className="weather-details">
           <div>
-            <dt><Droplets size={17} aria-hidden="true" /> Prob. màx. de precipitació</dt>
+            <dt title="Probabilitat màxima de precipitació del dia">
+              <Droplets size={16} aria-hidden="true" /> <span className="sr-only">Probabilitat màxima de </span>Pluja
+            </dt>
             <dd>{weather.precipitation === null ? '—' : `${weather.precipitation} %`}</dd>
           </div>
           <div>
-            <dt><Sunrise size={17} aria-hidden="true" /> Sortida del sol</dt>
+            <dt><Sunrise size={16} aria-hidden="true" /> Sortida<span className="sr-only"> del sol</span></dt>
             <dd>{weather.sunrise ?? '—'}</dd>
           </div>
           <div>
-            <dt><Sunset size={17} aria-hidden="true" /> Posta del sol</dt>
+            <dt><Sunset size={16} aria-hidden="true" /> Posta<span className="sr-only"> del sol</span></dt>
             <dd>{weather.sunset ?? '—'}</dd>
           </div>
         </dl>
