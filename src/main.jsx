@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CalendarDays, House, ShoppingBasket } from 'lucide-react';
+import { CalendarDays, ChevronLeft, House, ShoppingBasket } from 'lucide-react';
 import { dayKey, timeZone } from '../shared/dates.js';
 import { Agenda } from './agenda.jsx';
+import { GroceryList } from './groceries.jsx';
 import './styles.css';
 
 const clock = new Intl.DateTimeFormat('ca-ES', {
@@ -20,9 +21,8 @@ const date = new Intl.DateTimeFormat('ca-ES', {
 const pages = [
   { id: 'avui', label: 'Avui', icon: House },
   { id: 'calendari', label: 'Calendari', icon: CalendarDays },
-  { id: 'compra', label: 'Compra', icon: ShoppingBasket },
+  { id: 'compra', label: 'Compra', icon: ShoppingBasket, href: '/compra/' },
 ];
-const sampleItems = ['Pa', 'Tomàquets', 'Iogurt natural', 'Pomes'];
 
 function currentPage() {
   const hash = window.location.hash.slice(1);
@@ -81,8 +81,8 @@ function App() {
       <header className="topbar">
         <a className="brand" href="#avui"><House size={22} aria-hidden="true" /> Family Board</a>
         <nav aria-label="Seccions">
-          {pages.map(({ id, label, icon: Icon }) => (
-            <a key={id} href={`#${id}`} aria-current={page === id ? 'page' : undefined}>
+          {pages.map(({ id, label, icon: Icon, href }) => (
+            <a key={id} href={href ?? `#${id}`} aria-current={page === id ? 'page' : undefined}>
               <Icon size={19} aria-hidden="true" />
               <span>{label}</span>
             </a>
@@ -100,18 +100,7 @@ function App() {
 
       <div className={`panels ${page === 'avui' ? 'overview' : ''}`}>
         {page !== 'compra' && <Agenda today={dayKey(now)} week={page === 'calendari'} />}
-        {page !== 'calendari' && (
-          <section className="card groceries" aria-labelledby="groceries">
-            <header className="card-header">
-              <ShoppingBasket size={25} aria-hidden="true" />
-              <h2 id="groceries">Llista de la compra</h2>
-              <span className="sample-label">Exemple</span>
-            </header>
-            <ul>
-              {sampleItems.map((item) => <li key={item}>{item}</li>)}
-            </ul>
-          </section>
-        )}
+        {page !== 'calendari' && <GroceryList />}
       </div>
 
       <footer className="footer">
@@ -121,4 +110,14 @@ function App() {
   );
 }
 
-createRoot(document.getElementById('root')).render(<App />);
+function ShoppingPage() {
+  return (
+    <main className="board shopping-page">
+      <a className="shopping-back" href="/"><ChevronLeft size={18} aria-hidden="true" /> Family Board</a>
+      <GroceryList standalone />
+    </main>
+  );
+}
+
+const standalone = window.location.pathname.startsWith('/compra');
+createRoot(document.getElementById('root')).render(standalone ? <ShoppingPage /> : <App />);

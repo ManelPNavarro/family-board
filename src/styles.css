@@ -85,7 +85,6 @@ h2 { font-size: clamp(1.25rem, 3vw, 1.65rem); font-weight: 700; }
 .event + .event, .groceries li + li { border-top: 1px solid #e4ebe2; }
 .event time { color: #38634e; font-weight: 650; font-variant-numeric: tabular-nums; }
 .event span { display: block; color: #486454; }
-.groceries li { padding-block: .8rem; }
 .footer { margin-top: 1.4rem; color: #486454; font-size: .875rem; flex-wrap: wrap; }
 
 @media (max-width: 640px) {
@@ -101,6 +100,47 @@ h2 { font-size: clamp(1.25rem, 3vw, 1.65rem); font-weight: 700; }
 .agenda-day h3 { font-size: 1.1rem; font-weight: 700; }
 .agenda-message { color: #486454; padding-block: .5rem; }
 .event strong { overflow-wrap: anywhere; }
-.sample-label { margin-left: auto; color: #486454; font-size: .875rem; }
 
 .calendar-date::first-letter { text-transform: uppercase; }
+
+.shopping-page {
+  width: min(100% - 2rem, 43rem);
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+}
+.shopping-back { display: inline-flex; align-items: center; gap: .25rem; min-height: 44px; font-weight: 650; }
+.shopping-page h1 { font-size: clamp(1.65rem, 6vw, 2.4rem); letter-spacing: -.04em; }
+.shopping-page .card { margin-top: .5rem; }
+
+.grocery-add, .grocery-edit, .grocery-item, .grocery-check { display: flex; align-items: center; }
+.grocery-add, .grocery-edit { gap: .5rem; }
+.grocery-edit { width: 100%; }
+.grocery-item { min-height: 52px; }
+.grocery-check { flex: 1; min-height: 48px; min-width: 0; gap: .75rem; cursor: pointer; }
+.grocery-check span { overflow-wrap: anywhere; }
+.grocery-check input { appearance: auto; accent-color: #163627; width: 1.25rem; height: 1.25rem; flex: none; }
+.grocery-check input:checked + span { text-decoration: line-through; color: #486454; }
+.grocery-add input, .grocery-edit input {
+  min-width: 0;
+  flex: 1;
+  min-height: 46px;
+  padding-inline: .75rem;
+  border: 1px solid #bccdbf;
+  border-radius: .65rem;
+}
+.groceries button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  min-height: 44px;
+  min-width: 44px;
+  border-radius: .65rem;
+  cursor: pointer;
+}
+.grocery-add button { padding-inline: .75rem; background: #163627; color: white; font-weight: 650; }
+.groceries button:disabled { opacity: .55; cursor: default; }
+.grocery-item button:not(:disabled):hover { background: #f1f5ed; }
+.groceries :is(input, button):focus-visible { outline: 2px solid #1d6947; outline-offset: 2px; }
+.grocery-checked { margin-top: .8rem; border-top: 1px solid #e4ebe2; }
+.grocery-checked h3 { margin-top: .6rem; color: #486454; font-weight: 650; }

@@ -41,7 +41,7 @@ test('el Worker exige una sesión de Access válida para el panel y la API', asy
   const valid = await sign(audience);
   const wrongAudience = await sign('another-app');
   const expired = await sign(audience, 1);
-  for (const path of ['/', '/assets/app.js', '/api/status', '/api/calendar']) {
+  for (const path of ['/', '/compra/', '/compra.webmanifest', '/assets/app.js', '/api/status', '/api/calendar', '/api/groceries']) {
     for (const token of [undefined, 'fake-token', wrongAudience, expired]) {
       const response = await worker.fetch(request(path, token), env);
       assert.equal(response.status, 403);

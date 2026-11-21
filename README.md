@@ -60,7 +60,7 @@ se harán desde el Worker.
 ## Calendario familiar de Google
 
 Family Board lee un único calendario. **Hoy** muestra el día actual y
-**Calendario** muestra siete días, incluido hoy. La compra sigue usando datos de ejemplo.
+**Calendario** muestra siete días, incluido hoy.
 
 1. En un proyecto de Google Cloud, habilita **Google Calendar API** y crea una
    cuenta de servicio para Family Board. No necesita roles de IAM en el
@@ -86,3 +86,17 @@ además de eliminarlos de GitHub Actions.
 - [Compartir un calendario](https://support.google.com/calendar/answer/37082)
 - [Crear una cuenta de servicio](https://docs.cloud.google.com/iam/docs/service-accounts-create)
 - [Crear una clave JSON](https://docs.cloud.google.com/iam/docs/keys-create-delete)
+
+## Llista de la compra
+
+La pàgina `/compra/` obre la llista directament. El manifest permet afegir-la
+a la pantalla d’inici del mòbil. La llista és compartida per tots els usuaris
+autoritzats a Family Board i usa la mateixa base D1 que el Worker.
+
+Per preparar una base nova, aplica les migracions del directori `migrations/`
+abans de desplegar la versió que les necessita. Amb una sessió de Wrangler
+autoritzada per a D1 i la configuració generada amb `npm run deploy:config`:
+
+```sh
+npx wrangler d1 migrations apply DB --remote --config .wrangler.deploy.json
+```

@@ -1,5 +1,6 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { getFamilyCalendar } from './calendar.js';
+import { groceries } from './groceries.js';
 
 let accessKeys;
 let keysIssuer;
@@ -32,13 +33,18 @@ export default {
   async fetch(request, env) {
     const headers = {
       'Cache-Control': 'private, no-store',
-      'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+      'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
       'Referrer-Policy': 'no-referrer',
       'X-Content-Type-Options': 'nosniff',
     };
 
     if (!await verifyAccess(request, env)) {
       return new Response('Accés restringit', { status: 403, headers });
+    }
+
+    const { pathname } = new URL(request.url);
+    if (pathname === '/api/groceries' || pathname.startsWith('/api/groceries/')) {
+      return groceries(request, env.DB, headers);
     }
 
     if (request.method !== 'GET' && request.method !== 'HEAD') {
@@ -48,7 +54,6 @@ export default {
       });
     }
 
-    const { pathname } = new URL(request.url);
     if (pathname === '/api/status') {
       let database = 'unavailable';
       try {

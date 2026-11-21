@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS grocery_items (
+  id TEXT PRIMARY KEY NOT NULL,
+  title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 120),
+  checked INTEGER NOT NULL DEFAULT 0 CHECK (checked IN (0, 1))
+);
