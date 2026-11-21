@@ -56,3 +56,33 @@ se harán desde el Worker.
 - [Cloudflare Access para Workers](https://developers.cloudflare.com/workers/configuration/cloudflare-access/)
 - [Duración de las sesiones](https://developers.cloudflare.com/cloudflare-one/access-controls/access-settings/session-management/)
 - [Despliegue de Workers con GitHub Actions](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/)
+
+## Calendario familiar de Google
+
+Family Board lee un único calendario y muestra el día de hoy y los siete días
+siguientes contando desde hoy. La compra sigue usando datos de ejemplo.
+
+1. En un proyecto de Google Cloud, habilita **Google Calendar API** y crea una
+   cuenta de servicio para Family Board. No necesita roles de IAM en el
+   proyecto ni delegación del dominio.
+2. En Google Calendar, abre **Configuración y uso compartido** del calendario
+   familiar. Añade el correo de la cuenta de servicio con permiso **Ver todos
+   los detalles de los eventos**. En **Integrar calendario**, copia el ID del
+   calendario.
+3. Crea una clave JSON para esa cuenta de servicio. Guarda la clave completa
+   como `GOOGLE_CALENDAR_SERVICE_ACCOUNT` y el ID del calendario como
+   `GOOGLE_CALENDAR_ID` en los
+   [secretos de GitHub Actions](https://github.com/ManelPNavarro/family-board/settings/secrets/actions).
+4. Ejecuta el workflow **Family Board** en `main`. Abre el panel con tu sesión
+   de Access y compara la agenda con el calendario original.
+
+El Worker obtiene un token de corta duración con alcance de solo lectura de
+eventos. Devuelve el título y la hora, respeta los eventos privados y no
+almacena eventos en D1. Para retirar el acceso a los datos, elimina el permiso
+de la cuenta de servicio en Google Calendar o revoca la clave en Google Cloud.
+Para limpiar también los dos secretos de ejecución, elimínalos del Worker
+además de eliminarlos de GitHub Actions.
+
+- [Compartir un calendario](https://support.google.com/calendar/answer/37082)
+- [Crear una cuenta de servicio](https://docs.cloud.google.com/iam/docs/service-accounts-create)
+- [Crear una clave JSON](https://docs.cloud.google.com/iam/docs/keys-create-delete)

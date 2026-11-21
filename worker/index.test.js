@@ -41,7 +41,7 @@ test('el Worker exige una sesión de Access válida para el panel y la API', asy
   const valid = await sign(audience);
   const wrongAudience = await sign('another-app');
   const expired = await sign(audience, 1);
-  for (const path of ['/', '/assets/app.js', '/api/status']) {
+  for (const path of ['/', '/assets/app.js', '/api/status', '/api/calendar']) {
     for (const token of [undefined, 'fake-token', wrongAudience, expired]) {
       const response = await worker.fetch(request(path, token), env);
       assert.equal(response.status, 403);
@@ -54,6 +54,11 @@ test('el Worker exige una sesión de Access válida para el panel y la API', asy
   const panel = await worker.fetch(request('/', valid), env);
   assert.equal(await panel.text(), 'Panel');
   assert.equal(panel.headers.get('Cache-Control'), 'private, no-store');
+
+  const calendar = await worker.fetch(request('/api/calendar', valid), env);
+  assert.equal(calendar.status, 503);
+  assert.deepEqual(await calendar.json(), { error: 'not_configured' });
+  assert.equal(calendar.headers.get('Cache-Control'), 'private, no-store');
 
   const status = await worker.fetch(request('/api/status', valid), env);
   assert.equal(status.status, 200);

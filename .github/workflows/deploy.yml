@@ -35,13 +35,22 @@ jobs:
         if: github.ref == 'refs/heads/main' && vars.D1_DATABASE_ID != ''
         run: |
           npm run deploy:config
-          npx --no-install wrangler deploy --config .wrangler.deploy.json
+          if [[ -n "$GOOGLE_CALENDAR_ID" || -n "$GOOGLE_CALENDAR_SERVICE_ACCOUNT" ]]; then
+            secrets_file="$(mktemp "$RUNNER_TEMP/family-board-secrets.XXXXXX")"
+            trap 'rm -f "$secrets_file"' EXIT
+            node scripts/calendar-secrets.mjs > "$secrets_file"
+            npx --no-install wrangler deploy --config .wrangler.deploy.json --secrets-file "$secrets_file"
+          else
+            npx --no-install wrangler deploy --config .wrangler.deploy.json
+          fi
         env:
           D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
           ACCESS_TEAM: ${{ vars.ACCESS_TEAM }}
           ACCESS_AUD: ${{ vars.ACCESS_AUD }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          GOOGLE_CALENDAR_ID: ${{ secrets.GOOGLE_CALENDAR_ID }}
+          GOOGLE_CALENDAR_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_CALENDAR_SERVICE_ACCOUNT }}
           WRANGLER_SEND_METRICS: 'false'
       - name: Report pending Cloudflare setup
         if: github.ref == 'refs/heads/main' && vars.D1_DATABASE_ID == ''

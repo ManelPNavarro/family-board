@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CalendarDays, House, ShoppingBasket } from 'lucide-react';
+import { dayKey, timeZone } from '../shared/dates.js';
+import { Agenda } from './agenda.jsx';
 import './styles.css';
 
 const clock = new Intl.DateTimeFormat('es-ES', {
-  timeZone: 'Europe/Madrid',
+  timeZone,
   hour: '2-digit',
   minute: '2-digit',
 });
 const date = new Intl.DateTimeFormat('es-ES', {
-  timeZone: 'Europe/Madrid',
+  timeZone,
   weekday: 'long',
   day: 'numeric',
   month: 'long',
@@ -19,11 +21,6 @@ const pages = [
   { id: 'hoy', label: 'Hoy', icon: House },
   { id: 'calendario', label: 'Calendario', icon: CalendarDays },
   { id: 'compra', label: 'Compra', icon: ShoppingBasket },
-];
-const sampleEvents = [
-  { time: '09:30', title: 'Desayuno en familia', category: 'En casa' },
-  { time: '13:00', title: 'Paseo por el parque', category: 'Plan familiar' },
-  { time: '18:00', title: 'Preparar la semana', category: 'En casa' },
 ];
 const sampleItems = ['Pan', 'Tomates', 'Yogur natural', 'Manzanas'];
 
@@ -101,27 +98,13 @@ function App() {
       </section>
 
       <div className={`panels ${page === 'hoy' ? 'overview' : ''}`}>
-        {page !== 'compra' && (
-          <section className="card agenda" aria-labelledby="agenda">
-            <header className="card-header">
-              <CalendarDays size={24} aria-hidden="true" />
-              <h2 id="agenda">Agenda de hoy</h2>
-            </header>
-            <ul>
-              {sampleEvents.map(({ time, title, category }) => (
-                <li key={time} className="event">
-                  <time dateTime={time}>{time}</time>
-                  <div><strong>{title}</strong><span>{category}</span></div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+        {page !== 'compra' && <Agenda today={dayKey(now)} week={page === 'calendario'} />}
         {page !== 'calendario' && (
           <section className="card groceries" aria-labelledby="groceries">
             <header className="card-header">
               <ShoppingBasket size={25} aria-hidden="true" />
               <h2 id="groceries">Lista de la compra</h2>
+              <span className="sample-label">Ejemplo</span>
             </header>
             <ul>
               {sampleItems.map((item) => <li key={item}>{item}</li>)}
@@ -131,7 +114,6 @@ function App() {
       </div>
 
       <footer className="footer">
-        <span>Datos de ejemplo</span>
         <span role="status">{status.label}{status.commit && <> · <code>{status.commit}</code></>}</span>
       </footer>
     </main>

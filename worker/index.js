@@ -1,4 +1,5 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { getFamilyCalendar } from './calendar.js';
 
 let accessKeys;
 let keysIssuer;
@@ -59,6 +60,20 @@ export default {
       const status = database === 'ready' ? 200 : 503;
       if (request.method === 'HEAD') return new Response(null, { status, headers });
       return Response.json({ commit: env.COMMIT_SHA, database }, { status, headers });
+    }
+
+    if (pathname === '/api/calendar') {
+      const json = (data, status) => request.method === 'HEAD'
+        ? new Response(null, { status, headers })
+        : Response.json(data, { status, headers });
+      if (!env.GOOGLE_CALENDAR_ID || !env.GOOGLE_CALENDAR_SERVICE_ACCOUNT) {
+        return json({ error: 'not_configured' }, 503);
+      }
+      try {
+        return json(await getFamilyCalendar(env), 200);
+      } catch {
+        return json({ error: 'unavailable' }, 502);
+      }
     }
 
     if (pathname === '/api' || pathname.startsWith('/api/')) {
