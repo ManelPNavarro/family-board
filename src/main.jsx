@@ -76,6 +76,8 @@ function App() {
     return () => controller.abort();
   }, []);
 
+  if (page === 'compra') return <ShoppingPage />;
+
   return (
     <main className="board">
       <header className="topbar">
@@ -98,10 +100,7 @@ function App() {
         <time dateTime={now.toISOString()} className="clock">{clock.format(now)}</time>
       </section>
 
-      <div className={`panels ${page === 'avui' ? 'overview' : ''}`}>
-        {page !== 'compra' && <Agenda today={dayKey(now)} week={page === 'calendari'} />}
-        {page !== 'calendari' && <GroceryList />}
-      </div>
+      <Agenda today={dayKey(now)} week={page === 'calendari'} />
 
       <footer className="footer">
         <span role="status">{status.label}{status.commit && <> · <code>{status.commit}</code></>}</span>

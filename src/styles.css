@@ -60,9 +60,6 @@ h1 {
   line-height: 1;
 }
 
-.panels { display: grid; gap: 1rem; }
-.overview { grid-template-columns: 1.45fr 1fr; }
-
 .card {
   min-width: 0;
   background: #fff;
@@ -90,7 +87,6 @@ h2 { font-size: clamp(1.25rem, 3vw, 1.65rem); font-weight: 700; }
 @media (max-width: 640px) {
   .board { width: calc(100% - 2rem); }
   .topbar { align-items: flex-start; flex-direction: column; gap: .5rem; }
-  .overview { grid-template-columns: 1fr; }
   nav { flex-wrap: wrap; }
   nav a { padding-inline: .75rem; }
   .hero h1 { overflow-wrap: anywhere; }
