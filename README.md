@@ -1,7 +1,7 @@
 # Family Board
 
-Panel doméstico para tablet y móvil. El primer hito usa datos ficticios para
-validar el acceso privado, Cloudflare D1 y el despliegue desde GitHub Actions.
+Panel doméstico para tablet y móvil. La agenda se conecta al calendario
+familiar de Google y el despliegue se realiza desde GitHub Actions.
 El pie del panel muestra los primeros siete caracteres del commit en producción.
 
 ## Desarrollo local
@@ -59,8 +59,8 @@ se harán desde el Worker.
 
 ## Calendario familiar de Google
 
-Family Board lee un único calendario y muestra el día de hoy y los siete días
-siguientes contando desde hoy. La compra sigue usando datos de ejemplo.
+Family Board lee un único calendario. **Hoy** muestra el día actual y
+**Calendario** muestra siete días, incluido hoy. La compra sigue usando datos de ejemplo.
 
 1. En un proyecto de Google Cloud, habilita **Google Calendar API** y crea una
    cuenta de servicio para Family Board. No necesita roles de IAM en el
