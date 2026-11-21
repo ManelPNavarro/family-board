@@ -26,6 +26,7 @@ async function api(url, options) {
 
 export function GroceryList({ standalone = false }) {
   const [items, setItems] = useState(null);
+  const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
   const [draftProduce, setDraftProduce] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -36,6 +37,8 @@ export function GroceryList({ standalone = false }) {
   const refreshRequest = useRef(null);
   const pending = useRef(false);
   const creation = useRef(null);
+  const addDialog = useRef(null);
+  const addButton = useRef(null);
   const addInput = useRef(null);
   const firstSuggestion = useRef(null);
   const historyRequest = useRef(null);
@@ -50,6 +53,20 @@ export function GroceryList({ standalone = false }) {
     } catch {
       // A failed history request should not interrupt adding an item.
     }
+  }
+
+  function openAddDialog() {
+    if (message === 'save') setMessage('');
+    setAdding(true);
+    addDialog.current.showModal();
+    addInput.current.focus();
+  }
+
+  function onDialogClose() {
+    setAdding(false);
+    setSuggestionsOpen(false);
+    historyRequest.current?.abort();
+    addButton.current?.focus();
   }
 
   function selectSuggestion(title) {
@@ -137,8 +154,7 @@ export function GroceryList({ standalone = false }) {
       creation.current = null;
       setDraft('');
       setDraftProduce(null);
-      addInput.current?.focus();
-      void loadHistory();
+      addDialog.current?.close();
     }
   }
 
@@ -204,20 +220,41 @@ export function GroceryList({ standalone = false }) {
         <span className="grocery-symbol"><ShoppingBasket size={23} aria-hidden="true" /></span>
         <Heading id="groceries">Llista de la compra</Heading>
       </header>
-      <div
-        className="grocery-composer"
+      <button
+        type="button"
+        className="grocery-add-trigger"
+        ref={addButton}
+        aria-label="Afegeix un producte"
+        aria-haspopup="dialog"
+        disabled={!enabled || busy}
+        onClick={openAddDialog}
+      >
+        <Plus size={27} aria-hidden="true" />
+      </button>
+      <dialog
+        ref={addDialog}
+        className="grocery-dialog"
+        aria-labelledby="grocery-dialog-title"
+        onClose={onDialogClose}
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) setSuggestionsOpen(false);
         }}
         onKeyDown={(event) => {
           if (event.key === 'Escape' && suggestions.length) {
+            event.preventDefault();
             addInput.current?.focus();
             setSuggestionsOpen(false);
           }
         }}
       >
+        <header className="grocery-dialog-header">
+          <h2 id="grocery-dialog-title">Afegeix un producte</h2>
+          <button type="button" aria-label="Tanca" onClick={() => addDialog.current.close()}>
+            <X size={20} aria-hidden="true" />
+          </button>
+        </header>
         <form className="grocery-add" onSubmit={add}>
-          <input ref={addInput} type="text" aria-label="Producte nou" placeholder="Afegeix un producte"
+          <input ref={addInput} type="text" aria-label="Producte nou" placeholder="Nom del producte"
             autoComplete="off" value={draft} maxLength={120} readOnly={busy || !enabled}
             onFocus={() => {
               setSuggestionsOpen(true);
@@ -252,8 +289,9 @@ export function GroceryList({ standalone = false }) {
             ))}
           </ul>
         )}
-      </div>
-      {message && <p className="agenda-message" role="status">{messages[message]}</p>}
+        {adding && message && <p className="agenda-message" role="status">{messages[message]}</p>}
+      </dialog>
+      {!adding && message && <p className="agenda-message" role="status">{messages[message]}</p>}
       {items?.length === 0 && <p className="grocery-empty">La llista és buida.</p>}
       {items?.length > 0 && active.length === 0 && <p className="grocery-empty">Ja ho heu comprat tot.</p>}
       {[
