@@ -25,12 +25,14 @@ antes de servir la interfaz, los archivos estáticos o la API. El endpoint priva
 2. En [Variables de GitHub Actions](https://github.com/ManelPNavarro/family-board/settings/variables/actions),
    crea `D1_DATABASE_ID` con el identificador de la base. En
    [Secretos de GitHub Actions](https://github.com/ManelPNavarro/family-board/settings/secrets/actions),
-   guarda `CLOUDFLARE_ACCOUNT_ID` y `CLOUDFLARE_API_TOKEN`. Crea el token con la
-   plantilla **Edit Cloudflare Workers**, limita su alcance a la cuenta que alojará
-   Family Board y conserva los permisos necesarios para Workers y D1.
+   guarda `CLOUDFLARE_ACCOUNT_ID` y `CLOUDFLARE_API_TOKEN`. Usa **Account Settings
+   → Read** y **Workers Scripts → Edit**, limitados a la cuenta de Family Board.
+   Para un Worker ya creado, puedes limitar el permiso de edición a ese Worker.
 3. Ejecuta el workflow **Family Board** en `main` desde GitHub Actions. Este
    primer despliegue registra el Worker con la URL y las vistas previas desactivadas.
-4. Activa **One-time PIN** como método de inicio de sesión en Cloudflare Zero
+4. Completa el alta en [Cloudflare Zero Trust Free](https://developers.cloudflare.com/cloudflare-one/setup/).
+   Cloudflare solicita un método de pago durante el alta del plan gratuito.
+   Activa **One-time PIN** como método de inicio de sesión en Cloudflare Zero
    Trust. En **Workers & Pages → family-board → Access**, protege el Worker con
    **All traffic**. En la aplicación de Access, configura una política **Allow**
    con **Include → Emails** para las direcciones exactas de la familia, selecciona
