@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  font-family: system-ui, sans-serif;
+  background: #f1f5ed;
+  color: #163627;
+  font-synthesis: none;
+}
+
+.board {
+  width: min(calc(100% - 3rem), 76rem);
+  margin-inline: auto;
+  padding-block: 1.75rem;
+}
+
+.topbar, .hero, .card-header, .footer {
+  display: flex;
+  align-items: center;
+}
+
+.topbar, .hero, .footer {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.brand, nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  min-height: 48px;
+  font-weight: 650;
+}
+
+.brand { font-size: 1.2rem; }
+nav { display: flex; gap: .35rem; }
+nav a { border-radius: 999px; padding: .55rem 1rem; }
+nav a[aria-current] { background: #163627; color: #fff; }
+nav a:hover:not([aria-current]) { background: #e1eadc; }
+
+a:focus-visible {
+  outline: 3px solid #1d6947;
+  outline-offset: 4px;
+}
+
+.hero { padding-block: clamp(2rem, 7vw, 5rem) 1.8rem; }
+.date { font-weight: 600; color: #436352; }
+
+h1 {
+  font-size: clamp(3rem, 9vw, 6.5rem);
+  line-height: 1;
+  letter-spacing: -.075em;
+  font-weight: 740;
+}
+
+.clock {
+  font-size: clamp(2rem, 7vw, 5rem);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.06em;
+  line-height: 1;
+}
+
+.panels { display: grid; gap: 1rem; }
+.overview { grid-template-columns: 1.45fr 1fr; }
+
+.card {
+  min-width: 0;
+  background: #fff;
+  border-radius: 1.65rem;
+  padding: clamp(1.2rem, 3.5vw, 2rem);
+  border: 1px solid #dce5db;
+}
+
+.card-header { gap: .75rem; margin-bottom: 1rem; }
+h2 { font-size: clamp(1.25rem, 3vw, 1.65rem); font-weight: 700; }
+
+.event {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  align-items: start;
+  padding-block: 1rem;
+}
+
+.event + .event, .groceries li + li { border-top: 1px solid #e4ebe2; }
+.event time { color: #38634e; font-weight: 650; font-variant-numeric: tabular-nums; }
+.event span { display: block; color: #486454; }
+.groceries li { padding-block: .8rem; }
+.footer { margin-top: 1.4rem; color: #486454; font-size: .875rem; flex-wrap: wrap; }
+
+@media (max-width: 640px) {
+  .board { width: calc(100% - 2rem); }
+  .topbar { align-items: flex-start; flex-direction: column; gap: .5rem; }
+  .overview { grid-template-columns: 1fr; }
+  nav { flex-wrap: wrap; }
+  nav a { padding-inline: .75rem; }
+  .hero h1 { overflow-wrap: anywhere; }
+}

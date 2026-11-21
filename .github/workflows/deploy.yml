@@ -1,0 +1,44 @@
+name: Family Board
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: family-board-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Prepare and deploy the Worker
+        if: github.ref == 'refs/heads/main' && vars.D1_DATABASE_ID != ''
+        run: |
+          npm run deploy:config
+          npx --no-install wrangler deploy --config .wrangler.deploy.json
+        env:
+          D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
+          ACCESS_TEAM: ${{ vars.ACCESS_TEAM }}
+          ACCESS_AUD: ${{ vars.ACCESS_AUD }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          WRANGLER_SEND_METRICS: 'false'
+      - name: Report pending Cloudflare setup
+        if: github.ref == 'refs/heads/main' && vars.D1_DATABASE_ID == ''
+        run: echo 'Despliegue pendiente de configurar Cloudflare. Consulta el README.' >> "$GITHUB_STEP_SUMMARY"
