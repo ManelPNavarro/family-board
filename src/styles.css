@@ -47,6 +47,23 @@ a:focus-visible {
   border-inline-end: 1px solid var(--dashboard-border);
 }
 
+.dashboard-navigation-top { display: flex; align-items: center; gap: .65rem; }
+
+.dashboard-navigation-toggle {
+  display: none;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: .75rem;
+  background: #eeebff;
+  color: var(--dashboard-accent);
+  cursor: pointer;
+}
+
+.dashboard-navigation-toggle:hover { background: #e3defb; }
+.dashboard-navigation-toggle:focus-visible { outline: 2px solid var(--dashboard-accent); outline-offset: 3px; }
+
 .brand, .dashboard-links a {
   display: flex;
   align-items: center;
@@ -96,24 +113,6 @@ a:focus-visible {
   background: radial-gradient(ellipse at 85% 0%, #5145a4 0%, transparent 72%), #282454;
   color: #fff;
 }
-
-.dashboard-heading-title { display: flex; align-items: center; gap: .85rem; min-width: 0; }
-
-.dashboard-navigation-toggle {
-  display: none;
-  place-items: center;
-  flex: none;
-  width: 44px;
-  height: 44px;
-  border: 1px solid #ffffff50;
-  border-radius: .7rem;
-  background: #ffffff16;
-  color: #fff;
-  cursor: pointer;
-}
-
-.dashboard-navigation-toggle:hover { background: #ffffff29; }
-.dashboard-navigation-toggle:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 
 .dashboard-date {
   display: block;
@@ -229,8 +228,14 @@ a:focus-visible {
 
 @media (width > 32rem) {
   .dashboard-navigation-toggle { display: grid; }
-  .dashboard-navigation-hidden { grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
-  .dashboard-navigation-hidden .dashboard-navigation { display: none; }
+  .dashboard-navigation .brand { padding-inline: 0; }
+  .dashboard-navigation .brand-icon { display: none; }
+  .dashboard-navigation-hidden :is(.brand, .dashboard-links) { display: none; }
+}
+
+@media (width > 60rem) {
+  .dashboard-navigation-hidden { grid-template-columns: 4.25rem minmax(0, 1fr); }
+  .dashboard-navigation-hidden .dashboard-navigation { padding-inline: 0; align-items: center; }
 }
 
 @media (max-width: 32rem) {

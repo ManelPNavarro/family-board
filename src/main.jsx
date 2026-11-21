@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CalendarDays, ChevronLeft, House, PanelLeftClose, PanelLeftOpen, ShoppingBasket } from 'lucide-react';
+import { CalendarDays, ChevronLeft, House, Menu, ShoppingBasket } from 'lucide-react';
 import { dayKey, timeZone } from '../shared/dates.js';
 import { Agenda } from './agenda.jsx';
 import { Alerts } from './alerts.jsx';
@@ -117,17 +117,29 @@ function App({ now, today, weather }) {
 
   if (page === 'compra') return <ShoppingPage />;
 
-  const NavigationIcon = navigationHidden ? PanelLeftOpen : PanelLeftClose;
   const navigationLabel = navigationHidden ? 'Mostra el menú' : 'Amaga el menú';
 
   return (
     <div className={navigationHidden ? 'dashboard dashboard-navigation-hidden' : 'dashboard'}>
-      <header className="dashboard-navigation" id="dashboard-navigation">
-        <a className="brand" href="#avui">
-          <span className="brand-icon"><House size={20} aria-hidden="true" /></span>
-          Family Board
-        </a>
-        <nav className="dashboard-links" aria-label="Seccions">
+      <header className="dashboard-navigation">
+        <div className="dashboard-navigation-top">
+          <button
+            type="button"
+            className="dashboard-navigation-toggle"
+            aria-label={navigationLabel}
+            aria-expanded={!navigationHidden}
+            aria-controls="dashboard-links"
+            title={navigationLabel}
+            onClick={toggleNavigation}
+          >
+            <Menu size={22} aria-hidden="true" />
+          </button>
+          <a className="brand" href="#avui">
+            <span className="brand-icon"><House size={20} aria-hidden="true" /></span>
+            Family Board
+          </a>
+        </div>
+        <nav className="dashboard-links" id="dashboard-links" aria-label="Seccions">
           {pages.map(({ id, label, icon: Icon, href }) => (
             <a key={id} href={href ?? `#${id}`} aria-current={page === id ? 'page' : undefined}>
               <Icon size={19} aria-hidden="true" />
@@ -139,22 +151,9 @@ function App({ now, today, weather }) {
 
       <main className="dashboard-main">
         <header className="dashboard-heading">
-          <div className="dashboard-heading-title">
-            <button
-              type="button"
-              className="dashboard-navigation-toggle"
-              aria-label={navigationLabel}
-              aria-expanded={!navigationHidden}
-              aria-controls="dashboard-navigation"
-              title={navigationLabel}
-              onClick={toggleNavigation}
-            >
-              <NavigationIcon size={22} aria-hidden="true" />
-            </button>
-            <div>
-              <time dateTime={today} className="dashboard-date calendar-date">{date.format(now)}</time>
-              <h1>{pages.find(({ id }) => id === page).label}</h1>
-            </div>
+          <div>
+            <time dateTime={today} className="dashboard-date calendar-date">{date.format(now)}</time>
+            <h1>{pages.find(({ id }) => id === page).label}</h1>
           </div>
           <time dateTime={now.toISOString()} className="dashboard-clock">{clock.format(now)}</time>
         </header>
