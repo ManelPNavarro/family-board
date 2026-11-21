@@ -5,6 +5,12 @@ const selectItems = `
   FROM grocery_items item
   LEFT JOIN grocery_history history ON history.name_key = lower(trim(item.title))
 `;
+const matchingItemId = `
+  SELECT id FROM grocery_items
+  WHERE id = ? OR lower(trim(title)) = lower(trim(?))
+  ORDER BY (id = ?) DESC, checked, rowid DESC
+  LIMIT 1
+`;
 
 function item(row) {
   return { ...row, checked: row.checked === 1, produce: row.produce === 1 };
@@ -74,6 +80,7 @@ export async function groceries(request, db, headers) {
         return result({ error: 'invalid_item' }, 400);
       }
 
+      const match = [body.id, title, body.id];
       const statements = [];
       const suggestedProduce = body.suggestedProduce === true;
       if (hasProduce || suggestedProduce) {
@@ -86,9 +93,12 @@ export async function groceries(request, db, headers) {
         `).bind(title, title, Number(hasProduce ? body.produce : suggestedProduce), body.id, Number(hasProduce)));
       }
       statements.push(
-        db.prepare('INSERT INTO grocery_items (id, title) VALUES (?, ?) ON CONFLICT(id) DO NOTHING')
-          .bind(body.id, title),
-        db.prepare(`${selectItems} WHERE item.id = ?`).bind(body.id),
+        db.prepare(`
+          INSERT INTO grocery_items (id, title) VALUES (COALESCE((${matchingItemId}), ?), ?)
+          ON CONFLICT(id) DO UPDATE SET checked = 0
+          WHERE grocery_items.id <> ? AND grocery_items.checked = 1
+        `).bind(...match, body.id, title, body.id),
+        db.prepare(`${selectItems} WHERE item.id = (${matchingItemId})`).bind(...match),
       );
       const row = (await db.batch(statements)).at(-1).results[0];
       return row ? result({ item: item(row) }, 201) : result({ error: 'not_found' }, 404);

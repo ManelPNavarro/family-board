@@ -80,6 +80,17 @@ test('the shared list persists edits and rejects cross-origin writes', async () 
   assert.equal((await send('DELETE', `/${id}`)).status, 204);
   assert.equal((await send('POST', '', { id, title: 'Mandarines', suggestedProduce: true })).status, 201);
   assert.equal((await (await send('GET')).json()).items.find((entry) => entry.id === id).produce, true);
+
+  assert.equal((await send('PATCH', `/${id}`, { checked: true })).status, 200);
+  const retryableAdd = { id: '12345678-1234-4567-89ab-123456789014', title: ' mandarines ' };
+  const restored = { id, title: 'Mandarines', checked: false, produce: true };
+  for (const request of [retryableAdd, retryableAdd, { ...retryableAdd, id: crypto.randomUUID() }]) {
+    const response = await send('POST', '', request);
+    assert.equal(response.status, 201);
+    assert.deepEqual(await response.json(), { item: restored });
+  }
+  const { items } = await (await send('GET')).json();
+  assert.deepEqual(items.filter(({ title }) => title.toLowerCase() === 'mandarines'), [restored]);
   db.close();
 });
 

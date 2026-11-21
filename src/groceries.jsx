@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, Leaf, Pencil, Plus, Trash2, X } from 'lucide-react';
-import { grocerySuggestions } from '../shared/grocery-suggestions.js';
+import { grocerySuggestions, searchKey } from '../shared/grocery-suggestions.js';
 import { groceryProduceDefault } from '../shared/grocery-produce.js';
 import { api } from './api.js';
 
@@ -150,8 +150,11 @@ export function GroceryList() {
 
   async function add(event) {
     event.preventDefault();
-    const title = draft.trim();
-    if (!title || pending.current) return;
+    const typedTitle = draft.trim();
+    if (!typedTitle || pending.current) return;
+    const key = searchKey(typedTitle);
+    const existingItem = [...active, ...checked].find((item) => searchKey(item.title) === key);
+    const title = existingItem?.title ?? typedTitle;
     if (creation.current?.title !== title) {
       creation.current = { id: crypto.randomUUID(), title };
     }
