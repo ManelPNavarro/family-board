@@ -4,6 +4,7 @@ import { CalendarDays, ChevronLeft, House, ShoppingBasket } from 'lucide-react';
 import { dayKey, timeZone } from '../shared/dates.js';
 import { Agenda } from './agenda.jsx';
 import { GroceryList } from './groceries.jsx';
+import { Weather } from './weather.jsx';
 import './styles.css';
 
 const clock = new Intl.DateTimeFormat('ca-ES', {
@@ -78,6 +79,8 @@ function App() {
 
   if (page === 'compra') return <ShoppingPage />;
 
+  const today = dayKey(now);
+
   return (
     <main className="board">
       <header className="topbar">
@@ -100,7 +103,8 @@ function App() {
         <time dateTime={now.toISOString()} className="clock">{clock.format(now)}</time>
       </section>
 
-      <Agenda today={dayKey(now)} week={page === 'calendari'} />
+      {page === 'avui' && <Weather today={today} />}
+      <Agenda today={today} week={page === 'calendari'} />
 
       <footer className="footer">
         <span role="status">{status.label}{status.commit && <> · <code>{status.commit}</code></>}</span>

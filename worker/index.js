@@ -1,6 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { getFamilyCalendar } from './calendar.js';
 import { groceries } from './groceries.js';
+import { getWeather } from './weather.js';
 
 let accessKeys;
 let keysIssuer;
@@ -76,6 +77,18 @@ export default {
       }
       try {
         return json(await getFamilyCalendar(env), 200);
+      } catch {
+        return json({ error: 'unavailable' }, 502);
+      }
+    }
+
+    if (pathname === '/api/weather') {
+      const json = (data, status) => request.method === 'HEAD'
+        ? new Response(null, { status, headers })
+        : Response.json(data, { status, headers });
+      if (!env.WEATHER_LOCATION) return json({ error: 'not_configured' }, 503);
+      try {
+        return json(await getWeather(env.WEATHER_LOCATION), 200);
       } catch {
         return json({ error: 'unavailable' }, 502);
       }

@@ -357,3 +357,24 @@ h2 { font-size: clamp(1.25rem, 3vw, 1.65rem); font-weight: 700; }
     padding: 1.25rem;
   }
 }
+
+.weather-card {
+  margin-bottom: 1rem;
+  padding-block: 1rem;
+}
+
+.weather-card h2 { margin-bottom: .6rem; }
+.weather-summary, .weather-current { display: flex; align-items: center; gap: .85rem; }
+.weather-summary { flex-wrap: wrap; justify-content: space-between; }
+.weather-current { flex-wrap: wrap; }
+.weather-current > svg { flex: none; color: #2d6a4e; }
+.weather-current strong { display: block; font-size: 1.8rem; line-height: 1; }
+.weather-sky, .weather-range { color: #436352; }
+.weather-sky { display: block; margin-top: .2rem; }
+.weather-range { font-size: .875rem; }
+
+.weather-details { display: flex; flex-wrap: wrap; gap: .65rem 1.25rem; }
+.weather-details dt { display: flex; align-items: center; gap: .3rem; color: #436352; font-size: .875rem; }
+.weather-details dd { font-weight: 700; font-variant-numeric: tabular-nums; }
+.weather-source { margin-top: .65rem; color: #486454; font-size: .8125rem; }
+.weather-source a { text-decoration: underline; text-underline-offset: .15em; }

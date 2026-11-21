@@ -100,3 +100,11 @@ autoritzada per a D1 i la configuració generada amb `npm run deploy:config`:
 ```sh
 npx wrangler d1 migrations apply DB --remote --config .wrangler.deploy.json
 ```
+
+## El temps
+
+`Avui` mostra les dades d’[Open-Meteo](https://open-meteo.com/) si el
+desplegament rep el secret `WEATHER_LOCATION` de GitHub Actions. El secret és
+un objecte JSON amb `name`, `latitude` i `longitude`. Feu servir les coordenades
+aproximades del municipi. El Worker consulta el servei i reutilitza la previsió
+durant 15 minuts. La probabilitat és el màxim previst per a una hora del dia.
