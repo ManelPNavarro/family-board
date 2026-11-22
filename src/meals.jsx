@@ -1,13 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, School, X } from 'lucide-react';
 import { mondayOf, shiftDate } from '../shared/dates.js';
-import { mealNotesLimit, mealTypes } from '../shared/meals.js';
-import { grocerySuggestions } from '../shared/grocery-suggestions.js';
+import { mealDishLimit, mealNotesLimit, mealTypes } from '../shared/meals.js';
+import { grocerySuggestions, searchKey } from '../shared/grocery-suggestions.js';
 import { api } from './api.js';
 
 const endpoint = '/api/meals';
 const mealLabels = { breakfast: 'Esmorzar', lunch: 'Dinar', dinner: 'Sopar' };
-const courseLabels = ['Primer plat', 'Segon plat', 'Postres'];
 const dayFormat = new Intl.DateTimeFormat('ca-ES', { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'UTC' });
 const weekFormat = new Intl.DateTimeFormat('ca-ES', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 const atMidnight = (date) => new Date(`${date}T00:00:00Z`);
@@ -18,9 +17,9 @@ function MealWeek({ week, today }) {
   const [entries, setEntries] = useState(null);
   const [message, setMessage] = useState('S’està carregant el menú…');
   const [editor, setEditor] = useState(null);
-  const [courses, setCourses] = useState(['', '', '']);
-  const [courseHistory, setCourseHistory] = useState([[], [], []]);
-  const [step, setStep] = useState(0);
+  const [dishes, setDishes] = useState([]);
+  const [draft, setDraft] = useState('');
+  const [dishHistory, setDishHistory] = useState([]);
   const [school, setSchool] = useState(false);
   const [schoolLabel, setSchoolLabel] = useState('Escola');
   const [error, setError] = useState('');
@@ -42,7 +41,7 @@ function MealWeek({ week, today }) {
         if (controller.signal.aborted) return;
         setEntries(Object.fromEntries(data.meals.map((entry) => [mealKey(entry.date, entry.meal), entry])));
         setSchoolLabel(data.schoolLabel ?? 'Escola');
-        setCourseHistory(data.courseHistory ?? [[], [], []]);
+        setDishHistory(data.dishHistory ?? []);
         setMessage('');
       } catch (failure) {
         if (!controller.signal.aborted) {
@@ -67,8 +66,8 @@ function MealWeek({ week, today }) {
     const entry = entries[mealKey(date, meal)];
     setError('');
     setEditor({ date, meal });
-    setCourses(entry?.courses ?? [entry?.notes ?? '', '', '']);
-    setStep(0);
+    setDishes(entry?.dishes ?? (entry?.courses ?? [entry?.notes]).filter(Boolean));
+    setDraft('');
     setSchool(entry?.school === true);
     dialog.current.showModal();
     (entry?.school ? schoolField : notesField).current.focus();
@@ -77,10 +76,7 @@ function MealWeek({ week, today }) {
   async function save(event) {
     event.preventDefault();
     if (busy) return;
-    if (!school && step < courseLabels.length - 1) {
-      moveStep(step + 1);
-      return;
-    }
+    const items = school ? dishes : withDraft(draft);
     request.current?.abort();
     setBusy(true);
     setError('');
@@ -88,12 +84,11 @@ function MealWeek({ week, today }) {
       const saved = await api(endpoint, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...editor, courses, school }),
+        body: JSON.stringify({ ...editor, dishes: items, school }),
       });
       setEntries((previous) => ({ ...previous, [mealKey(saved.date, saved.meal)]: saved }));
       if (!saved.school) {
-        setCourseHistory((previous) => previous.map((titles, index) =>
-          saved.courses[index] ? [...new Set([saved.courses[index], ...titles])] : titles));
+        setDishHistory((previous) => [...new Set([...saved.dishes, ...previous])]);
       }
       dialog.current?.close();
     } catch (failure) {
@@ -103,16 +98,22 @@ function MealWeek({ week, today }) {
     }
   }
 
-  function moveStep(nextStep) {
-    setStep(nextStep);
+  function withDraft(text) {
+    const title = text.trim();
+    if (!title || dishes.length >= mealDishLimit || dishes.some((dish) => searchKey(dish) === searchKey(title))) {
+      return dishes;
+    }
+    return [...dishes, title];
+  }
+
+  function addDish(title) {
+    setDishes(withDraft(title));
+    setDraft('');
     notesField.current.focus();
   }
 
-  function setCourse(value) {
-    setCourses((previous) => previous.map((text, index) => index === step ? value : text));
-  }
-
-  const suggestions = school ? [] : grocerySuggestions(courses[step], courseHistory[step], []);
+  const suggestions = school || dishes.length >= mealDishLimit ? [] :
+    grocerySuggestions(draft, dishHistory, dishes.map((title) => ({ title })));
 
   return (
     <>
@@ -138,12 +139,8 @@ function MealWeek({ week, today }) {
                         disabled={message === sessionMessage} onClick={() => openEditor(date, meal)}>
                         <span className="meal-cell-label">{mealLabels[meal]}</span>
                         {entry?.school ? <span className="meal-school"><School size={16} aria-hidden="true" />{schoolLabel}</span> :
-                          entry?.courses?.some(Boolean) ? <span className="meal-course-summary">
-                            {entry.courses.map((course, index) => course && (
-                              <span key={courseLabels[index]} className="meal-cell-notes">
-                                <small>{courseLabels[index]}</small>{course}
-                              </span>
-                            ))}
+                          entry?.dishes?.length ? <span className="meal-dish-summary">
+                            {entry.dishes.map((dish, index) => <span key={index} className="meal-cell-notes">{dish}</span>)}
                           </span> : value ? <span className="meal-cell-notes">{value}</span> :
                           <span className="meal-empty"><Plus size={15} aria-hidden="true" /> Afegeix un àpat</span>}
                       </button>
@@ -169,31 +166,43 @@ function MealWeek({ week, today }) {
               onChange={(event) => setSchool(event.target.checked)} />
             {schoolLabel}
           </label>
-          <div className="meal-course-step" hidden={school}>
-            <label className="meal-course-label" htmlFor="meal-course">
-              {courseLabels[step]} <span>{step + 1} / {courseLabels.length}</span>
-            </label>
-            <textarea id="meal-course" ref={notesField} value={courses[step]}
-              onChange={(event) => setCourse(event.target.value)} placeholder="Escriu un plat"
-              maxLength={mealNotesLimit} rows={3} disabled={busy || school} />
+          <div className="meal-dish-editor" hidden={school}>
+            {dishes.length > 0 && (
+              <ul className="meal-dish-list" aria-label="Plats de l’àpat">
+                {dishes.map((dish, index) => (
+                  <li key={index}>
+                    <span>{dish}</span>
+                    <button type="button" aria-label={`Treu ${dish}`} disabled={busy}
+                      onClick={() => setDishes((previous) => previous.filter((_, item) => item !== index))}>
+                      <X size={17} aria-hidden="true" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="meal-dish-input">
+              <input ref={notesField} value={draft} onChange={(event) => setDraft(event.target.value)}
+                aria-label="Nom del plat" placeholder="Nom del plat" maxLength={mealNotesLimit}
+                disabled={busy || school || dishes.length >= mealDishLimit}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.nativeEvent.isComposing && draft.trim()) {
+                    event.preventDefault();
+                    addDish(draft);
+                  }
+                }} />
+              <button type="button" aria-label="Afegeix el plat" disabled={busy || withDraft(draft) === dishes}
+                onClick={() => addDish(draft)}><Plus size={20} aria-hidden="true" /></button>
+            </div>
             {suggestions.length > 0 && (
               <ul className="grocery-suggestions" aria-label="Plats suggerits">
                 {suggestions.map((title) => (
-                  <li key={title}><button type="button" disabled={busy} onClick={() => {
-                    setCourse(title);
-                    notesField.current.focus();
-                  }}>{title}</button></li>
+                  <li key={title}><button type="button" disabled={busy} onClick={() => addDish(title)}>{title}</button></li>
                 ))}
               </ul>
             )}
           </div>
           {error && <p role="alert" className="agenda-message">{error}</p>}
-          <div className="meal-course-actions">
-            {!school && step > 0 && <button type="button" disabled={busy} onClick={() => moveStep(step - 1)}>Enrere</button>}
-            <button type="submit" className="meal-save" disabled={busy}>
-              {school || step === courseLabels.length - 1 ? 'Desa' : 'Següent'}
-            </button>
-          </div>
+          <button type="submit" className="meal-save" disabled={busy}>Desa</button>
         </form>
       </dialog>
     </>

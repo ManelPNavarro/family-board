@@ -1,5 +1,5 @@
 import { mondayOf, shiftDate, validDate } from '../shared/dates.js';
-import { coursesPerMeal, mealNotesLimit, mealTypes } from '../shared/meals.js';
+import { coursesPerMeal, mealDishLimit, mealNotesLimit, mealTypes } from '../shared/meals.js';
 import { searchKey } from '../shared/grocery-suggestions.js';
 
 export async function meals(request, db, headers) {
@@ -27,28 +27,43 @@ export async function meals(request, db, headers) {
               SELECT date, meal, '', 1 FROM meal_school_slots WHERE date BETWEEN ? AND ?
               UNION ALL
               SELECT date, meal, '', 0 FROM meal_courses WHERE date BETWEEN ? AND ?
+              UNION ALL
+              SELECT date, meal, '', 0 FROM meal_dishes WHERE date BETWEEN ? AND ?
             )
             GROUP BY date, meal
           )
-          SELECT slots.*, courses.first_course, courses.second_course, courses.dessert
+          SELECT slots.*, courses.first_course, courses.second_course, courses.dessert, dish_list.dishes
           FROM slots LEFT JOIN meal_courses courses USING (date, meal)
-        `).bind(week, weekEnd, week, weekEnd, week, weekEnd),
+          LEFT JOIN meal_dishes dish_list USING (date, meal)
+        `).bind(week, weekEnd, week, weekEnd, week, weekEnd, week, weekEnd),
         db.prepare("SELECT value FROM meal_settings WHERE key = 'school_label'"),
-        db.prepare('SELECT course, title FROM meal_course_history ORDER BY last_seen DESC, title COLLATE NOCASE'),
+        db.prepare(`
+          SELECT course, title FROM (
+            SELECT course, title, last_seen FROM meal_course_history
+            UNION ALL
+            SELECT NULL AS course, title, last_seen FROM meal_dish_history
+          )
+          ORDER BY last_seen DESC, title COLLATE NOCASE
+        `),
       ]);
       const courseHistory = Array.from({ length: coursesPerMeal }, () => []);
-      for (const { course, title } of history.results) courseHistory[course].push(title);
+      for (const { course, title } of history.results) {
+        if (course !== null) courseHistory[course].push(title);
+      }
       return result({
-        meals: plan.results.map(({ date, meal, notes, school, first_course, second_course, dessert }) => {
+        meals: plan.results.map(({ date, meal, notes, school, first_course, second_course, dessert, dishes }) => {
           const courses = first_course === null ? null : [first_course, second_course, dessert];
+          const items = dishes === null ? null : JSON.parse(dishes);
           return {
             date, meal, school: school === 1,
-            notes: courses ? courses.filter(Boolean).join(' · ') : notes,
+            notes: items ? items.join(' · ') : courses ? courses.filter(Boolean).join(' · ') : notes,
             ...(courses && { courses }),
+            ...(items && { dishes: items }),
           };
         }),
         schoolLabel: settings.results[0]?.value ?? 'Escola',
         courseHistory,
+        dishHistory: [...new Set(history.results.map(({ title }) => title))],
       });
     }
 
@@ -57,15 +72,18 @@ export async function meals(request, db, headers) {
       return result({ error: 'invalid_meal' }, 415);
     }
     const body = await request.json().catch(() => null);
-    const { date, meal, notes, school, courses } = body ?? {};
+    const { date, meal, notes, school, courses, dishes } = body ?? {};
     const validText = (value) => typeof value === 'string' && value.length <= mealNotesLimit;
     const structured = courses !== undefined;
+    const list = dishes !== undefined;
     if (!validDate(date) || !mealTypes.includes(meal) || (school !== undefined && typeof school !== 'boolean') ||
-        (structured ? !Array.isArray(courses) || courses.length !== coursesPerMeal || !courses.every(validText) : !validText(notes))) {
+        (list && (!Array.isArray(dishes) || dishes.length > mealDishLimit || !dishes.every(validText))) ||
+        (structured && (!Array.isArray(courses) || courses.length !== coursesPerMeal || !courses.every(validText))) ||
+        (!list && !structured && !validText(notes))) {
       return result({ error: 'invalid_meal' }, 400);
     }
 
-    const trimmed = structured ? '' : notes.trim();
+    const trimmed = list || structured ? '' : notes.trim();
     const saveNotes = trimmed
       ? db.prepare(`
         INSERT INTO meals (date, meal, notes) VALUES (?, ?, ?)
@@ -78,6 +96,28 @@ export async function meals(request, db, headers) {
         ? db.prepare('INSERT INTO meal_school_slots (date, meal) VALUES (?, ?) ON CONFLICT(date, meal) DO NOTHING')
         : db.prepare('DELETE FROM meal_school_slots WHERE date = ? AND meal = ?');
       statements.push(saveSchool.bind(date, meal));
+    }
+
+    if (list) {
+      const items = dishes.map((title) => title.trim()).filter(Boolean);
+      statements.push(db.prepare('DELETE FROM meal_courses WHERE date = ? AND meal = ?').bind(date, meal));
+      statements.push(items.length
+        ? db.prepare(`
+          INSERT INTO meal_dishes (date, meal, dishes) VALUES (?, ?, ?)
+          ON CONFLICT(date, meal) DO UPDATE SET dishes = excluded.dishes
+        `).bind(date, meal, JSON.stringify(items))
+        : db.prepare('DELETE FROM meal_dishes WHERE date = ? AND meal = ?').bind(date, meal));
+      if (!school && items.length) {
+        const names = items.map((title) => ({ name: searchKey(title), title }));
+        statements.push(db.prepare(`
+          INSERT INTO meal_dish_history (name_key, title, last_seen)
+          SELECT json_extract(value, '$.name'), json_extract(value, '$.title'), unixepoch()
+          FROM json_each(?) WHERE 1
+          ON CONFLICT(name_key) DO UPDATE SET last_seen = excluded.last_seen
+        `).bind(JSON.stringify(names)));
+      }
+      await db.batch(statements);
+      return result({ date, meal, school, notes: items.join(' · '), dishes: items });
     }
 
     const savedCourses = structured ? courses.map((text) => text.trim()) : null;
