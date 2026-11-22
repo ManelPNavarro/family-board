@@ -8,15 +8,16 @@ test('weekly meals persist and each write replaces only its own slot', async (t)
   const db = new DatabaseSync(':memory:');
   t.after(() => db.close());
   db.exec(await readFile(new URL('../migrations/0005_meals.sql', import.meta.url), 'utf8'));
+  db.exec(await readFile(new URL('../migrations/0006_school_meals.sql', import.meta.url), 'utf8'));
   const d1 = {
+    batch: async (statements) => statements.map((statement) => statement.all()),
     prepare(sql) {
       const statement = db.prepare(sql);
-      return {
-        bind: (...params) => ({
-          all: () => ({ results: statement.all(...params) }),
-          run: () => statement.run(...params),
-        }),
-      };
+      const bind = (...params) => ({
+        all: () => ({ results: statement.all(...params) }),
+        run: () => statement.run(...params),
+      });
+      return { ...bind(), bind };
     },
   };
   const origin = 'https://family-board.example';
@@ -42,8 +43,18 @@ test('weekly meals persist and each write replaces only its own slot', async (t)
   const week = '?week=2026-12-28';
   const updated = await (await send('GET', week)).json();
   assert.equal(updated.meals.length, 2);
-  assert.deepEqual(updated.meals.find(({ meal }) => meal === 'lunch'), { ...lunch, notes: 'Llenties' });
+  assert.deepEqual(updated.meals.find(({ meal }) => meal === 'lunch'), { ...lunch, notes: 'Llenties', school: false });
+  db.prepare('INSERT INTO meal_settings (key, value) VALUES (?, ?)').run('school_label', 'Escola de prova');
+  const school = { ...lunch, notes: 'Llenties', school: true };
+  assert.equal((await send('PUT', '', { ...school, school: 'true' })).status, 400);
+  assert.deepEqual(await (await send('PUT', '', school)).json(), school);
+  const withSchool = await (await send('GET', week)).json();
+  assert.equal(withSchool.schoolLabel, 'Escola de prova');
+  assert.deepEqual(withSchool.meals.find(({ meal }) => meal === 'lunch'), school);
+  assert.equal((await send('PUT', '', { ...school, school: false })).status, 200);
+  assert.deepEqual((await (await send('GET', week)).json()).meals.find(({ meal }) => meal === 'lunch'),
+    { ...school, school: false });
   assert.equal((await send('PUT', '', { ...lunch, notes: ' ' })).status, 200);
-  assert.deepEqual(await (await send('GET', week)).json(), { meals: [dinner] });
-  assert.deepEqual(await (await send('GET', '?week=2027-01-04')).json(), { meals: [nextWeek] });
+  assert.deepEqual((await (await send('GET', week)).json()).meals, [{ ...dinner, school: false }]);
+  assert.deepEqual((await (await send('GET', '?week=2027-01-04')).json()).meals, [{ ...nextWeek, school: false }]);
 });

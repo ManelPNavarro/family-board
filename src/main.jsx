@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CalendarDays, House, ListChecks, Menu, ShoppingBasket, Utensils } from 'lucide-react';
+import { CalendarDays, House, ListChecks, Menu, ShoppingBasket, Utensils, X } from 'lucide-react';
 import { dayKey, timeZone } from '../shared/dates.js';
 import { Agenda } from './agenda.jsx';
 import { Alerts } from './alerts.jsx';
@@ -66,6 +66,8 @@ function FamilyBoard() {
 
 function App({ now, today, weather }) {
   const [page, setPage] = useState(currentPage);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileMenuButton = useRef(null);
   const [status, setStatus] = useState({ label: 'S’està comprovant la versió' });
   const [navigationHidden, setNavigationHidden] = useState(() => {
     try {
@@ -86,7 +88,10 @@ function App({ now, today, weather }) {
   }
 
   useEffect(() => {
-    const handleHash = () => setPage(currentPage());
+    const handleHash = () => {
+      setPage(currentPage());
+      setMobileMenuOpen(false);
+    };
     window.addEventListener('hashchange', handleHash);
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
@@ -126,7 +131,13 @@ function App({ now, today, weather }) {
 
   return (
     <div className={navigationHidden ? 'dashboard dashboard-navigation-hidden' : 'dashboard'}>
-      <header className="dashboard-navigation">
+      <header className="dashboard-navigation" data-mobile-menu-open={mobileMenuOpen || undefined}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape' && mobileMenuOpen) {
+            setMobileMenuOpen(false);
+            mobileMenuButton.current?.focus();
+          }
+        }}>
         <div className="dashboard-navigation-top">
           <button
             type="button"
@@ -139,14 +150,21 @@ function App({ now, today, weather }) {
           >
             <Menu size={22} aria-hidden="true" />
           </button>
-          <a className="brand" href="#avui">
+          <a className="brand" href="#avui" onClick={() => setMobileMenuOpen(false)}>
             <span className="brand-icon"><House size={20} aria-hidden="true" /></span>
             Family Board
           </a>
+          <button ref={mobileMenuButton} type="button" className="dashboard-mobile-toggle"
+            aria-label={mobileMenuOpen ? 'Tanca el menú' : 'Obre el menú'}
+            aria-expanded={mobileMenuOpen} aria-controls="dashboard-links"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            {mobileMenuOpen ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
+          </button>
         </div>
         <nav className="dashboard-links" id="dashboard-links" aria-label="Seccions">
           {pages.map(({ id, label, icon: Icon }) => (
-            <a key={id} href={id === 'compra' && !shoppingEntry ? '/compra/' : `#${id}`} aria-current={page === id ? 'page' : undefined}>
+            <a key={id} href={id === 'compra' && !shoppingEntry ? '/compra/' : `#${id}`}
+              aria-current={page === id ? 'page' : undefined} onClick={() => setMobileMenuOpen(false)}>
               <Icon size={19} aria-hidden="true" />
               <span>{label}</span>
             </a>

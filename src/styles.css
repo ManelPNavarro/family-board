@@ -49,7 +49,7 @@ a:focus-visible {
 
 .dashboard-navigation-top { display: flex; align-items: center; gap: .65rem; }
 
-.dashboard-navigation-toggle {
+.dashboard-navigation-toggle, .dashboard-mobile-toggle {
   display: none;
   place-items: center;
   flex: none;
@@ -61,8 +61,8 @@ a:focus-visible {
   cursor: pointer;
 }
 
-.dashboard-navigation-toggle:hover { background: #e3defb; }
-.dashboard-navigation-toggle:focus-visible { outline: 2px solid var(--dashboard-accent); outline-offset: 3px; }
+:is(.dashboard-navigation-toggle, .dashboard-mobile-toggle):hover { background: #e3defb; }
+:is(.dashboard-navigation-toggle, .dashboard-mobile-toggle):focus-visible { outline: 2px solid var(--dashboard-accent); outline-offset: 3px; }
 
 .brand, .dashboard-links a {
   display: flex;
@@ -242,9 +242,10 @@ a:focus-visible {
 
 @media (max-width: 32rem) {
   .dashboard-navigation { align-items: stretch; flex-direction: column; }
-  .dashboard-links { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  .dashboard-links a { justify-content: center; flex-direction: column; gap: .2rem; padding-inline: .25rem; font-size: .8rem; }
-  .dashboard-links svg { width: 1rem; flex: none; }
+  .dashboard-navigation-top { justify-content: space-between; }
+  .dashboard-mobile-toggle { display: grid; }
+  .dashboard-links { display: none; }
+  .dashboard-navigation[data-mobile-menu-open] .dashboard-links { display: grid; }
   .dashboard-main { padding: 1rem; }
   .agenda .card-header { column-gap: .5rem; row-gap: 0; margin-bottom: .65rem; }
   .dashboard-card-icon { width: 2.1rem; height: 2.1rem; }
@@ -592,9 +593,14 @@ a:focus-visible {
 .meals .meal-cell:hover { border-color: #b7b0e3; background: #faf9ff; }
 .meal-cell-label { font-size: .85rem; font-weight: 650; }
 .meal-cell-notes { white-space: pre-wrap; overflow-wrap: anywhere; }
+.meals .meal-cell[data-school] { background: #eeebff; border-color: #cdc5f8; }
+.meal-school { display: inline-flex; align-items: center; gap: .4rem; color: #413594; font-weight: 650; overflow-wrap: anywhere; }
+.meal-school svg { flex: none; }
 .meal-empty { display: inline-flex; align-items: center; gap: .25rem; color: var(--dashboard-muted); font-size: .8125rem; }
 .meal-empty svg { flex: none; color: var(--dashboard-accent); }
-.meal-dialog form, .meal-dialog label { display: grid; gap: .6rem; }
+.meal-dialog form { display: grid; gap: .6rem; }
+.meal-school-toggle { display: flex; align-items: center; gap: .55rem; min-height: 44px; font-weight: 650; cursor: pointer; }
+.meal-school-toggle input { appearance: auto; accent-color: var(--dashboard-accent); width: 1.2rem; height: 1.2rem; }
 .meal-dialog textarea {
   width: 100%;
   padding: .65rem;

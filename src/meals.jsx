@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, School, X } from 'lucide-react';
 import { mondayOf, shiftDate } from '../shared/dates.js';
 import { mealNotesLimit, mealTypes } from '../shared/meals.js';
 import { api } from './api.js';
@@ -17,11 +17,14 @@ function MealWeek({ week, today }) {
   const [message, setMessage] = useState('S’està carregant el menú…');
   const [editor, setEditor] = useState(null);
   const [notes, setNotes] = useState('');
+  const [school, setSchool] = useState(false);
+  const [schoolLabel, setSchoolLabel] = useState('Escola');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const request = useRef(null);
   const dialog = useRef(null);
   const notesField = useRef(null);
+  const schoolField = useRef(null);
   const dates = Array.from({ length: 7 }, (_, index) => shiftDate(week, index));
 
   useEffect(() => {
@@ -31,9 +34,10 @@ function MealWeek({ week, today }) {
       const controller = new AbortController();
       request.current = controller;
       try {
-        const { meals } = await api(`${endpoint}?week=${week}`, { signal: controller.signal });
+        const data = await api(`${endpoint}?week=${week}`, { signal: controller.signal });
         if (controller.signal.aborted) return;
-        setEntries(Object.fromEntries(meals.map(({ date, meal, notes }) => [mealKey(date, meal), notes])));
+        setEntries(Object.fromEntries(data.meals.map((entry) => [mealKey(entry.date, entry.meal), entry])));
+        setSchoolLabel(data.schoolLabel ?? 'Escola');
         setMessage('');
       } catch (failure) {
         if (!controller.signal.aborted) {
@@ -55,11 +59,13 @@ function MealWeek({ week, today }) {
   }, [week]);
 
   function openEditor(date, meal) {
+    const entry = entries[mealKey(date, meal)];
     setError('');
     setEditor({ date, meal });
-    setNotes(entries[mealKey(date, meal)] ?? '');
+    setNotes(entry?.notes ?? '');
+    setSchool(entry?.school === true);
     dialog.current.showModal();
-    notesField.current.focus();
+    (entry?.school ? schoolField : notesField).current.focus();
   }
 
   async function save(event) {
@@ -72,9 +78,9 @@ function MealWeek({ week, today }) {
       const saved = await api(endpoint, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...editor, notes }),
+        body: JSON.stringify({ ...editor, notes, school }),
       });
-      setEntries((previous) => ({ ...previous, [mealKey(saved.date, saved.meal)]: saved.notes }));
+      setEntries((previous) => ({ ...previous, [mealKey(saved.date, saved.meal)]: saved }));
       dialog.current?.close();
     } catch (failure) {
       setError(failure.message === 'session' ? sessionMessage : 'No s’ha pogut desar l’àpat. Torna-ho a provar.');
@@ -99,13 +105,15 @@ function MealWeek({ week, today }) {
                 <li key={date} className="meal-grid-row" data-today={date === today || undefined}>
                   <h2><time dateTime={date} className="calendar-date">{label}</time>{date === today && <span>Avui</span>}</h2>
                   {mealTypes.map((meal) => {
-                    const value = entries[mealKey(date, meal)];
+                    const entry = entries[mealKey(date, meal)];
+                    const value = entry?.school ? schoolLabel : entry?.notes;
                     return (
-                      <button className="meal-cell" key={meal} type="button" aria-haspopup="dialog"
+                      <button className="meal-cell" data-school={entry?.school || undefined} key={meal} type="button" aria-haspopup="dialog"
                         aria-label={`${mealLabels[meal]}, ${label}: ${value || 'Afegeix un àpat'}`}
                         disabled={message === sessionMessage} onClick={() => openEditor(date, meal)}>
                         <span className="meal-cell-label">{mealLabels[meal]}</span>
-                        {value ? <span className="meal-cell-notes">{value}</span> :
+                        {entry?.school ? <span className="meal-school"><School size={16} aria-hidden="true" />{schoolLabel}</span> :
+                          value ? <span className="meal-cell-notes">{value}</span> :
                           <span className="meal-empty"><Plus size={15} aria-hidden="true" /> Afegeix un àpat</span>}
                       </button>
                     );
@@ -117,17 +125,22 @@ function MealWeek({ week, today }) {
         </>
       )}
       <dialog ref={dialog} className="grocery-dialog meal-dialog" aria-labelledby="meal-editor-title"
+        onClose={() => setSchool(false)}
         onCancel={(event) => { if (busy) event.preventDefault(); }}>
         <header className="grocery-dialog-header">
           <h2 id="meal-editor-title">{editor ? mealLabels[editor.meal] : 'Àpat'}</h2>
           <button type="button" aria-label="Tanca" disabled={busy} onClick={() => dialog.current.close()}><X size={20} /></button>
         </header>
         <form onSubmit={save}>
-          <label>
-            {editor && <span className="calendar-date">{dayFormat.format(atMidnight(editor.date))}</span>}
-            <textarea ref={notesField} value={notes} onChange={(event) => setNotes(event.target.value)}
-              placeholder="Què li preparareu?" maxLength={mealNotesLimit} rows={4} disabled={busy} />
+          {editor && <p className="calendar-date">{dayFormat.format(atMidnight(editor.date))}</p>}
+          <label className="meal-school-toggle">
+            <input ref={schoolField} type="checkbox" checked={school} disabled={busy}
+              onChange={(event) => setSchool(event.target.checked)} />
+            {schoolLabel}
           </label>
+          <textarea ref={notesField} value={notes} onChange={(event) => setNotes(event.target.value)}
+            aria-label="Què li preparareu?" placeholder="Què li preparareu?" maxLength={mealNotesLimit}
+            rows={4} disabled={busy || school} hidden={school} />
           {error && <p role="alert" className="agenda-message">{error}</p>}
           <button type="submit" className="meal-save" disabled={busy}>Desa</button>
         </form>
