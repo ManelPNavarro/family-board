@@ -1,10 +1,7 @@
-export const taskPriorities = ['low', 'normal', 'high'];
+import { mondayOf, shiftDate } from './dates.js';
+export { validDate as validDueDate } from './dates.js';
 
-export function validDueDate(value) {
-  if (typeof value !== 'string' || !/^[1-9]\d{3}-\d{2}-\d{2}$/.test(value)) return false;
-  const date = new Date(`${value}T00:00:00Z`);
-  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
-}
+export const taskPriorities = ['low', 'normal', 'high'];
 
 export function compareTasks(a, b) {
   const priority = taskPriorities.indexOf(b.priority) - taskPriorities.indexOf(a.priority);
@@ -12,10 +9,8 @@ export function compareTasks(a, b) {
 }
 
 export function taskDates(today) {
-  const day = new Date(`${today}T00:00:00Z`);
-  const weekday = (day.getUTCDay() + 6) % 7;
-  const dateAt = (offset) => new Date(day.getTime() + offset * 86_400_000).toISOString().slice(0, 10);
-  return { tomorrow: dateAt(1), weekStart: dateAt(-weekday), weekEnd: dateAt(6 - weekday) };
+  const weekStart = mondayOf(today);
+  return { tomorrow: shiftDate(today, 1), weekStart, weekEnd: shiftDate(weekStart, 6) };
 }
 
 export function taskPeriods(tasks, today) {
