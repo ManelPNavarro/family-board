@@ -32,4 +32,17 @@ test('the workout catalog seeds once and the planner respects time, equipment an
   assert.deepEqual(high.sequence.map(({ id }) => id), ['push-up', 'pull-up', 'slow-push-up', 'chin-up']);
   assert.ok(high.minutes <= 15);
   assert.ok(high.work > withEquipment.work);
+
+  const expansion = await readFile(new URL('../migrations/0011_expand_workout_catalog.sql', import.meta.url), 'utf8');
+  db.exec(expansion);
+  db.exec(expansion);
+  const { exercises: expanded } = await (await workouts(new Request(url), d1, {})).json();
+  assert.equal(expanded.length, 15);
+  assert.equal(expanded.find(({ id }) => id === 'pull-up').title, 'Pull-ups');
+  const legs = planWorkout(expanded, { ...basic, movements: ['legs'], equipment: ['dumbbell-12'] });
+  assert.deepEqual(legs.sequence.map(({ id }) => id), ['dumbbell-lunge', 'dumbbell-squat', 'glute-bridge']);
+  const withoutBench = planWorkout(expanded, { ...basic, movements: ['push'], equipment: [] });
+  assert.ok(!withoutBench.sequence.some(({ id }) => id === 'triceps-dip'));
+  const withBench = planWorkout(expanded, { ...basic, movements: ['push'], equipment: ['bench'] });
+  assert.ok(withBench.sequence.some(({ id }) => id === 'triceps-dip'));
 });

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Dumbbell, ListChecks } from 'lucide-react';
-import { energyLevels, equipmentLabels, movementLabels, planWorkout } from '../shared/workouts.js';
+import { catalogEquipmentLabels, energyLevels, equipmentLabels, movementLabels, planWorkout } from '../shared/workouts.js';
 import { api } from './api.js';
 
 const workoutKey = 'family-board:current-workout';
@@ -157,13 +157,13 @@ export function Workouts() {
         {workout && <WorkoutChecklist workout={workout} onCheck={toggleExercise} />}
       </div>
       {exercises && (
-        <details className="card workout-catalog">
-          <summary>Catàleg d’exercicis ({exercises.length})</summary>
+        <details className="card workout-catalog" lang="en">
+          <summary>Exercise catalog ({exercises.length})</summary>
           <ul className="workout-catalog-list">
             {exercises.map((exercise) => (
               <li key={exercise.id}>
                 <strong>{exercise.title}</strong>
-                <span>{movementLabels[exercise.movement]} · {exercise.equipment.map((id) => equipmentLabels[id]).join(' o ') || noEquipment}</span>
+                <span>{exercise.movement === 'legs' ? 'Legs' : movementLabels[exercise.movement]} · {exercise.equipment.map((id) => catalogEquipmentLabels[id]).join(' or ') || 'No equipment'}</span>
               </li>
             ))}
           </ul>

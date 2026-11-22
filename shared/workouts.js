@@ -4,6 +4,14 @@ export const equipmentLabels = {
   'dumbbell-5': 'Manuelles de 5 kg',
   'dumbbell-12': 'Manuelles de 12 kg',
   'pull-up-bar': 'Barra de dominades',
+  bench: 'Banc o cadira estable',
+};
+export const catalogEquipmentLabels = {
+  bands: 'Resistance bands',
+  'dumbbell-5': '5 kg dumbbells',
+  'dumbbell-12': '12 kg dumbbells',
+  'pull-up-bar': 'Pull-up bar',
+  bench: 'Bench or stable chair',
 };
 export const energyLevels = {
   low: { label: 'Baixa', work: 20, rounds: 2 },
