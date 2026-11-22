@@ -618,6 +618,16 @@ a:focus-visible {
 .meal-school svg { flex: none; }
 .meal-empty { justify-self: center; color: var(--dashboard-accent); }
 .meal-dialog form { display: grid; gap: .6rem; }
+.meal-type-label { display: grid; gap: .3rem; font-weight: 650; }
+.meal-type-label select {
+  appearance: auto;
+  min-height: 44px;
+  padding: .45rem .65rem;
+  border: 1px solid #b7b6d0;
+  border-radius: .65rem;
+  background: #fff;
+}
+.meal-type-label select:focus-visible { outline: 2px solid var(--dashboard-accent); outline-offset: 2px; }
 .meal-school-toggle { display: flex; align-items: center; gap: .55rem; min-height: 44px; font-weight: 650; cursor: pointer; }
 .meal-school-toggle input { appearance: auto; accent-color: var(--dashboard-accent); width: 1.2rem; height: 1.2rem; }
 .meal-dialog .meal-save { background: var(--dashboard-accent); color: #fff; font-weight: 650; }
@@ -637,7 +647,7 @@ a:focus-visible {
 .meal-dish-input button { background: #eeebff; color: var(--dashboard-accent); }
 
 @media (min-width: 47rem) {
-  .meal-grid-row { grid-template-columns: minmax(7rem, .75fr) repeat(3, minmax(0, 1fr)); }
+  .meal-grid-row { grid-template-columns: minmax(7rem, .75fr) repeat(4, minmax(0, 1fr)); }
 }
 
 @media (max-width: 32rem) {

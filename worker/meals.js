@@ -2,6 +2,49 @@ import { mondayOf, shiftDate, validDate } from '../shared/dates.js';
 import { coursesPerMeal, mealDishLimit, mealNotesLimit, mealTypes } from '../shared/meals.js';
 import { searchKey } from '../shared/grocery-suggestions.js';
 
+async function saveDishList(db, { date, meal, dishes, school, create }) {
+  const items = dishes.map((title) => title.trim()).filter(Boolean);
+  const encoded = JSON.stringify(items);
+  const statements = [db.prepare(`
+    WITH incoming(date, meal, dishes, school) AS (VALUES (?, ?, ?, ?))
+    INSERT INTO meal_entries (date, meal, dishes, school)
+    SELECT i.date, i.meal, i.dishes, COALESCE(i.school, current.school, EXISTS (
+      SELECT 1 FROM meal_school_slots WHERE date = i.date AND meal = i.meal
+    ))
+    FROM incoming i LEFT JOIN meal_entries current USING (date, meal)
+    WHERE ? = 0 OR (
+      current.date IS NOT NULL AND (
+        (current.dishes = '[]' AND current.school = 0)
+        OR (current.dishes = i.dishes AND current.school = i.school)
+      )
+    ) OR (
+      current.date IS NULL AND NOT EXISTS (
+        SELECT 1 FROM meals WHERE date = i.date AND meal = i.meal
+        UNION ALL SELECT 1 FROM meal_school_slots WHERE date = i.date AND meal = i.meal
+        UNION ALL SELECT 1 FROM meal_courses WHERE date = i.date AND meal = i.meal
+        UNION ALL SELECT 1 FROM meal_dishes WHERE date = i.date AND meal = i.meal
+      )
+    )
+    ON CONFLICT(date, meal) DO UPDATE SET dishes = excluded.dishes, school = excluded.school
+    RETURNING school
+  `).bind(date, meal, encoded, school === undefined ? null : Number(school), Number(create === true))];
+
+  if (items.length && !school) {
+    const names = items.map((title) => ({ name: searchKey(title), title }));
+    statements.push(db.prepare(`
+      INSERT INTO meal_dish_history (name_key, title, last_seen)
+      SELECT json_extract(value, '$.name'), json_extract(value, '$.title'), unixepoch()
+      FROM json_each(?) WHERE EXISTS (
+        SELECT 1 FROM meal_entries WHERE date = ? AND meal = ? AND dishes = ? AND school = 0
+      )
+      ON CONFLICT(name_key) DO UPDATE SET last_seen = excluded.last_seen
+    `).bind(JSON.stringify(names), date, meal, encoded));
+  }
+  const [{ results }] = await db.batch(statements);
+  if (!results.length) return null;
+  return { date, meal, school: results[0].school === 1, notes: items.join(' · '), dishes: items };
+}
+
 export async function meals(request, db, headers) {
   const url = new URL(request.url);
   const { method } = request;
@@ -29,13 +72,17 @@ export async function meals(request, db, headers) {
               SELECT date, meal, '', 0 FROM meal_courses WHERE date BETWEEN ? AND ?
               UNION ALL
               SELECT date, meal, '', 0 FROM meal_dishes WHERE date BETWEEN ? AND ?
+              UNION ALL
+              SELECT date, meal, '', 0 FROM meal_entries WHERE date BETWEEN ? AND ?
             )
             GROUP BY date, meal
           )
-          SELECT slots.*, courses.first_course, courses.second_course, courses.dessert, dish_list.dishes
+          SELECT slots.*, courses.first_course, courses.second_course, courses.dessert, dish_list.dishes,
+            current.dishes AS saved_dishes, current.school AS saved_school
           FROM slots LEFT JOIN meal_courses courses USING (date, meal)
           LEFT JOIN meal_dishes dish_list USING (date, meal)
-        `).bind(week, weekEnd, week, weekEnd, week, weekEnd, week, weekEnd),
+          LEFT JOIN meal_entries current USING (date, meal)
+        `).bind(week, weekEnd, week, weekEnd, week, weekEnd, week, weekEnd, week, weekEnd),
         db.prepare("SELECT value FROM meal_settings WHERE key = 'school_label'"),
         db.prepare(`
           SELECT course, title FROM (
@@ -51,7 +98,13 @@ export async function meals(request, db, headers) {
         if (course !== null) courseHistory[course].push(title);
       }
       return result({
-        meals: plan.results.map(({ date, meal, notes, school, first_course, second_course, dessert, dishes }) => {
+        meals: plan.results.flatMap(({ date, meal, notes, school, first_course, second_course, dessert, dishes, saved_dishes, saved_school }) => {
+          if (saved_dishes !== null) {
+            const items = JSON.parse(saved_dishes);
+            return items.length || saved_school
+              ? [{ date, meal, school: saved_school === 1, notes: items.join(' · '), dishes: items }]
+              : [];
+          }
           const courses = first_course === null ? null : [first_course, second_course, dessert];
           const items = dishes === null ? null : JSON.parse(dishes);
           return {
@@ -72,18 +125,24 @@ export async function meals(request, db, headers) {
       return result({ error: 'invalid_meal' }, 415);
     }
     const body = await request.json().catch(() => null);
-    const { date, meal, notes, school, courses, dishes } = body ?? {};
+    const { date, meal, notes, school, courses, dishes, create } = body ?? {};
     const validText = (value) => typeof value === 'string' && value.length <= mealNotesLimit;
     const structured = courses !== undefined;
     const list = dishes !== undefined;
     if (!validDate(date) || !mealTypes.includes(meal) || (school !== undefined && typeof school !== 'boolean') ||
         (list && (!Array.isArray(dishes) || dishes.length > mealDishLimit || !dishes.every(validText))) ||
+        (create !== undefined && (!list || typeof create !== 'boolean')) ||
         (structured && (!Array.isArray(courses) || courses.length !== coursesPerMeal || !courses.every(validText))) ||
-        (!list && !structured && !validText(notes))) {
+        (!list && (meal === 'snack' || (!structured && !validText(notes))))) {
       return result({ error: 'invalid_meal' }, 400);
     }
 
-    const trimmed = list || structured ? '' : notes.trim();
+    if (list) {
+      const saved = await saveDishList(db, { date, meal, dishes, school, create });
+      return saved ? result(saved) : result({ error: 'occupied' }, 409);
+    }
+
+    const trimmed = structured ? '' : notes.trim();
     const saveNotes = trimmed
       ? db.prepare(`
         INSERT INTO meals (date, meal, notes) VALUES (?, ?, ?)
@@ -96,28 +155,6 @@ export async function meals(request, db, headers) {
         ? db.prepare('INSERT INTO meal_school_slots (date, meal) VALUES (?, ?) ON CONFLICT(date, meal) DO NOTHING')
         : db.prepare('DELETE FROM meal_school_slots WHERE date = ? AND meal = ?');
       statements.push(saveSchool.bind(date, meal));
-    }
-
-    if (list) {
-      const items = dishes.map((title) => title.trim()).filter(Boolean);
-      statements.push(db.prepare('DELETE FROM meal_courses WHERE date = ? AND meal = ?').bind(date, meal));
-      statements.push(items.length
-        ? db.prepare(`
-          INSERT INTO meal_dishes (date, meal, dishes) VALUES (?, ?, ?)
-          ON CONFLICT(date, meal) DO UPDATE SET dishes = excluded.dishes
-        `).bind(date, meal, JSON.stringify(items))
-        : db.prepare('DELETE FROM meal_dishes WHERE date = ? AND meal = ?').bind(date, meal));
-      if (!school && items.length) {
-        const names = items.map((title) => ({ name: searchKey(title), title }));
-        statements.push(db.prepare(`
-          INSERT INTO meal_dish_history (name_key, title, last_seen)
-          SELECT json_extract(value, '$.name'), json_extract(value, '$.title'), unixepoch()
-          FROM json_each(?) WHERE 1
-          ON CONFLICT(name_key) DO UPDATE SET last_seen = excluded.last_seen
-        `).bind(JSON.stringify(names)));
-      }
-      await db.batch(statements);
-      return result({ date, meal, school, notes: items.join(' · '), dishes: items });
     }
 
     const savedCourses = structured ? courses.map((text) => text.trim()) : null;

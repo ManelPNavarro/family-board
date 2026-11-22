@@ -11,6 +11,7 @@ test('weekly meals persist and each write replaces only its own slot', async (t)
   db.exec(await readFile(new URL('../migrations/0006_school_meals.sql', import.meta.url), 'utf8'));
   db.exec(await readFile(new URL('../migrations/0007_meal_courses.sql', import.meta.url), 'utf8'));
   db.exec(await readFile(new URL('../migrations/0008_meal_dishes.sql', import.meta.url), 'utf8'));
+  db.exec(await readFile(new URL('../migrations/0009_meal_entries.sql', import.meta.url), 'utf8'));
   const d1 = {
     batch: async (statements) => statements.map((statement) => statement.all()),
     prepare(sql) {
@@ -86,4 +87,14 @@ test('weekly meals persist and each write replaces only its own slot', async (t)
   assert.ok(singleDish.dishHistory.includes('Pera'));
   assert.equal((await send('PUT', '', { ...dishes, dishes: [] })).status, 200);
   assert.equal((await (await send('GET', week)).json()).meals.some(({ meal }) => meal === 'lunch'), false);
+
+  const snack = { ...dishes, meal: 'snack', dishes: ['Pera'], create: true };
+  assert.equal((await send('PUT', '', { ...dishes, meal: 'dinner', create: true })).status, 409);
+  assert.equal((await send('PUT', '', snack)).status, 200);
+  assert.equal((await send('PUT', '', snack)).status, 200);
+  assert.equal((await send('PUT', '', { ...snack, dishes: ['Iogurt'] })).status, 409);
+  const withSnack = await (await send('GET', week)).json();
+  assert.deepEqual(withSnack.meals.find(({ meal }) => meal === 'snack').dishes, ['Pera']);
+  assert.ok(!withSnack.dishHistory.includes('Iogurt'));
+  assert.equal((await send('PUT', '', { ...dishes, dishes: ['Sopa'], create: true })).status, 200);
 });

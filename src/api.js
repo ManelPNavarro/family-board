@@ -7,6 +7,6 @@ export async function api(url, options) {
   if (response.type === 'opaqueredirect' || response.status === 401 || response.status === 403) {
     throw new Error('session');
   }
-  if (!response.ok) throw new Error('unavailable');
+  if (!response.ok) throw Object.assign(new Error('unavailable'), { status: response.status });
   return response.status === 204 ? null : response.json();
 }
