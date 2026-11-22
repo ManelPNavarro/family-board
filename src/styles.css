@@ -230,7 +230,7 @@ a:focus-visible {
 .dashboard-update button:focus-visible { outline: 2px solid var(--dashboard-accent); outline-offset: 3px; }
 
 @media (min-width: 47rem) {
-  .dashboard-content:has(.weather-card) { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+  .dashboard-content:has(.weather-card) { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
 }
 
 @media (max-width: 60rem) {

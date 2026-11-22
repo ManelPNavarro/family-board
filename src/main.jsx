@@ -217,8 +217,8 @@ function App({ now, today, weather }) {
               <time dateTime={now.toISOString()} className="dashboard-clock">{clock.format(now)}</time>
             </header>
             <div className="dashboard-content">
-              <Agenda today={today} week={page === 'calendari'} />
               {page === 'avui' && <Weather weather={weather} today={today} />}
+              <Agenda today={today} week={page === 'calendari'} />
             </div>
             {page === 'avui' && <>
               <TodayMenu today={today} />
