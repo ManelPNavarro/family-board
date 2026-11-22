@@ -6,7 +6,6 @@ import { grocerySuggestions, searchKey } from '../shared/grocery-suggestions.js'
 import { api } from './api.js';
 
 const endpoint = '/api/meals';
-const mealLabels = { breakfast: 'Esmorzar', lunch: 'Dinar', dinner: 'Sopar' };
 const dayFormat = new Intl.DateTimeFormat('ca-ES', { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'UTC' });
 const weekFormat = new Intl.DateTimeFormat('ca-ES', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 const atMidnight = (date) => new Date(`${date}T00:00:00Z`);
@@ -119,44 +118,37 @@ function MealWeek({ week, today }) {
     <>
       {message && <p className="agenda-message" role="status">{message}</p>}
       {entries && (
-        <>
-          <div className="meal-grid-row meal-grid-head" aria-hidden="true">
-            <span>Dia</span>
-            {mealTypes.map((meal) => <span key={meal}>{mealLabels[meal]}</span>)}
-          </div>
-          <ol className="meal-grid">
-            {dates.map((date) => {
-              const label = dayFormat.format(atMidnight(date));
-              return (
-                <li key={date} className="meal-grid-row" data-today={date === today || undefined}>
-                  <h2><time dateTime={date} className="calendar-date">{label}</time>{date === today && <span>Avui</span>}</h2>
-                  {mealTypes.map((meal) => {
-                    const entry = entries[mealKey(date, meal)];
-                    const value = entry?.school ? schoolLabel : entry?.notes;
-                    return (
-                      <button className="meal-cell" data-school={entry?.school || undefined} key={meal} type="button" aria-haspopup="dialog"
-                        aria-label={`${mealLabels[meal]}, ${label}: ${value || 'Afegeix un àpat'}`}
-                        disabled={message === sessionMessage} onClick={() => openEditor(date, meal)}>
-                        <span className="meal-cell-label">{mealLabels[meal]}</span>
-                        {entry?.school ? <span className="meal-school"><School size={16} aria-hidden="true" />{schoolLabel}</span> :
-                          entry?.dishes?.length ? <span className="meal-dish-summary">
-                            {entry.dishes.map((dish, index) => <span key={index} className="meal-cell-notes">{dish}</span>)}
-                          </span> : value ? <span className="meal-cell-notes">{value}</span> :
-                          <span className="meal-empty"><Plus size={15} aria-hidden="true" /> Afegeix un àpat</span>}
-                      </button>
-                    );
-                  })}
-                </li>
-              );
-            })}
-          </ol>
-        </>
+        <ol className="meal-grid">
+          {dates.map((date) => {
+            const label = dayFormat.format(atMidnight(date));
+            return (
+              <li key={date} className="meal-grid-row" data-today={date === today || undefined}>
+                <h2><time dateTime={date} className="calendar-date">{label}</time>{date === today && <span>Avui</span>}</h2>
+                {mealTypes.map((meal, slot) => {
+                  const entry = entries[mealKey(date, meal)];
+                  const value = entry?.school ? schoolLabel : entry?.notes;
+                  return (
+                    <button className="meal-cell" data-school={entry?.school || undefined} key={meal} type="button" aria-haspopup="dialog"
+                      aria-label={`Àpat ${slot + 1}, ${label}: ${value || 'Afegeix un àpat'}`}
+                      disabled={message === sessionMessage} onClick={() => openEditor(date, meal)}>
+                      {entry?.school ? <span className="meal-school"><School size={16} aria-hidden="true" />{schoolLabel}</span> :
+                        entry?.dishes?.length ? <span className="meal-dish-summary">
+                          {entry.dishes.map((dish, index) => <span key={index} className="meal-cell-notes">{dish}</span>)}
+                        </span> : value ? <span className="meal-cell-notes">{value}</span> :
+                        <Plus className="meal-empty" size={20} aria-hidden="true" />}
+                    </button>
+                  );
+                })}
+              </li>
+            );
+          })}
+        </ol>
       )}
       <dialog ref={dialog} className="grocery-dialog meal-dialog" aria-labelledby="meal-editor-title"
         onClose={() => setSchool(false)}
         onCancel={(event) => { if (busy) event.preventDefault(); }}>
         <header className="grocery-dialog-header">
-          <h2 id="meal-editor-title">{editor ? mealLabels[editor.meal] : 'Àpat'}</h2>
+          <h2 id="meal-editor-title">Àpat</h2>
           <button type="button" aria-label="Tanca" disabled={busy} onClick={() => dialog.current.close()}><X size={20} /></button>
         </header>
         <form onSubmit={save}>

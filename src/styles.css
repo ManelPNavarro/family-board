@@ -597,13 +597,12 @@ a:focus-visible {
 .meal-current-week { padding-inline: .7rem; }
 .meal-grid { display: grid; gap: .65rem; }
 .meal-grid-row { display: grid; gap: .45rem; padding: .65rem; border: 1px solid var(--dashboard-border); border-radius: .85rem; }
-.meal-grid-head { display: none; }
 .meal-grid-row[data-today] { background: #f2efff; border-color: #cdc5f8; }
 .meals .meal-grid-row h2 { display: flex; align-items: center; flex-wrap: wrap; gap: .3rem .55rem; font-size: .95rem; }
 .meal-grid-row h2 span { padding: .1rem .45rem; border-radius: 999px; background: #e6e0ff; color: #413594; font-size: .75rem; }
 .meals .meal-cell {
   display: grid;
-  grid-template-columns: minmax(4.65rem, auto) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   justify-content: stretch;
   gap: .55rem;
   min-width: 0;
@@ -613,13 +612,11 @@ a:focus-visible {
   text-align: start;
 }
 .meals .meal-cell:hover { border-color: #b7b0e3; background: #faf9ff; }
-.meal-cell-label { font-size: .85rem; font-weight: 650; }
 .meal-cell-notes { white-space: pre-wrap; overflow-wrap: anywhere; }
 .meals .meal-cell[data-school] { background: #eeebff; border-color: #cdc5f8; }
 .meal-school { display: inline-flex; align-items: center; gap: .4rem; color: #413594; font-weight: 650; overflow-wrap: anywhere; }
 .meal-school svg { flex: none; }
-.meal-empty { display: inline-flex; align-items: center; gap: .25rem; color: var(--dashboard-muted); font-size: .8125rem; }
-.meal-empty svg { flex: none; color: var(--dashboard-accent); }
+.meal-empty { justify-self: center; color: var(--dashboard-accent); }
 .meal-dialog form { display: grid; gap: .6rem; }
 .meal-school-toggle { display: flex; align-items: center; gap: .55rem; min-height: 44px; font-weight: 650; cursor: pointer; }
 .meal-school-toggle input { appearance: auto; accent-color: var(--dashboard-accent); width: 1.2rem; height: 1.2rem; }
@@ -641,10 +638,6 @@ a:focus-visible {
 
 @media (min-width: 47rem) {
   .meal-grid-row { grid-template-columns: minmax(7rem, .75fr) repeat(3, minmax(0, 1fr)); }
-  .meal-grid-head { display: grid; padding-block: .35rem; border: 0; font-size: .875rem; font-weight: 650; color: var(--dashboard-muted); }
-  .meal-grid-head span:not(:first-child) { padding-inline: .55rem; }
-  .meals .meal-cell { grid-template-columns: minmax(0, 1fr); }
-  .meal-cell-label { display: none; }
 }
 
 @media (max-width: 32rem) {
