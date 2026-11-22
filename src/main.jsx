@@ -102,29 +102,50 @@ function App({ now, today, weather }) {
       return;
     }
 
-    const controller = new AbortController();
+    let controller;
     async function loadStatus() {
+      if (controller || document.visibilityState === 'hidden') return;
+      const request = new AbortController();
+      controller = request;
       try {
         const response = await fetch('/api/status', {
           cache: 'no-store',
-          signal: controller.signal,
+          redirect: 'manual',
+          signal: request.signal,
         });
-        if (response.redirected || response.status === 401 || response.status === 403) {
+        if (request.signal.aborted) return;
+        if (response.type === 'opaqueredirect' || response.status === 401 || response.status === 403) {
           setStatus({ label: 'Actualitza la pàgina per renovar la sessió' });
           return;
         }
         if (!response.ok && response.status !== 503) throw new Error();
         const { commit, database } = await response.json();
+        if (request.signal.aborted) return;
         setStatus({
           label: database === 'ready' ? 'D1 connectat' : 'D1 no disponible',
-          commit: commit?.slice(0, 7),
+          commit: (__BUILD_COMMIT__ || commit)?.slice(0, 7),
+          update: __BUILD_COMMIT__ && /^[0-9a-f]{40}$/.test(commit ?? '') && commit !== __BUILD_COMMIT__ ? commit : null,
         });
       } catch {
-        if (!controller.signal.aborted) setStatus({ label: 'Versió no disponible' });
+        if (!request.signal.aborted) {
+          setStatus((previous) => ({ ...previous, label: 'Versió no disponible' }));
+        }
+      } finally {
+        if (controller === request) controller = null;
       }
     }
     void loadStatus();
-    return () => controller.abort();
+    const interval = window.setInterval(loadStatus, 60_000);
+    document.addEventListener('visibilitychange', loadStatus);
+    window.addEventListener('pageshow', loadStatus);
+    window.addEventListener('focus', loadStatus);
+    return () => {
+      controller?.abort();
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', loadStatus);
+      window.removeEventListener('pageshow', loadStatus);
+      window.removeEventListener('focus', loadStatus);
+    };
   }, []);
 
   const navigationLabel = navigationHidden ? 'Mostra el menú' : 'Amaga el menú';
@@ -173,6 +194,16 @@ function App({ now, today, weather }) {
       </header>
 
       <main className="dashboard-main">
+        {status.update && (
+          <div className="dashboard-update">
+            <p role="status">Hi ha una versió nova.</p>
+            <button type="button" onClick={() => {
+              const url = new URL(window.location.href);
+              url.searchParams.set('v', status.update.slice(0, 12));
+              window.location.replace(url);
+            }}>Actualitza</button>
+          </div>
+        )}
         {page === 'compra' && <GroceryList />}
         {page === 'tasques' && <Tasks today={today} />}
         {page === 'menu' && <Meals today={today} />}

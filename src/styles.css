@@ -206,6 +206,28 @@ a:focus-visible {
 
 .event strong { font-weight: 650; overflow-wrap: anywhere; }
 .dashboard-footer { margin-top: 1rem; color: var(--dashboard-muted); font-size: .8125rem; }
+.dashboard-update {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  margin-bottom: 1rem;
+  padding: .5rem .75rem;
+  border: 1px solid #dedaf6;
+  border-radius: .85rem;
+  background: #eeebff;
+}
+.dashboard-update button {
+  min-height: 44px;
+  padding-inline: .8rem;
+  border-radius: .65rem;
+  background: var(--dashboard-accent);
+  color: #fff;
+  font-weight: 650;
+  cursor: pointer;
+}
+.dashboard-update button:focus-visible { outline: 2px solid var(--dashboard-accent); outline-offset: 3px; }
 
 @media (min-width: 47rem) {
   .dashboard-content:has(.weather-card) { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
