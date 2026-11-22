@@ -19,27 +19,41 @@ export const energyLevels = {
   high: { label: 'Alta', work: 40, rounds: 4 },
 };
 
+const timedExercises = {
+  plank: { seconds: 60, sides: 1 },
+  'side-plank': { seconds: 30, sides: 2 },
+};
+
 export function exerciseTarget({ id, movement }) {
-  if (id === 'plank') return '60 segons';
-  if (id === 'side-plank') return '30 segons per costat';
+  const timed = timedExercises[id];
+  if (timed) return `${timed.seconds} segons${timed.sides === 2 ? ' per costat' : ''}`;
   if (id === 'pull-up' || id === 'chin-up') return '5 repeticions';
   return movement === 'core' ? '20 repeticions' : '15 repeticions';
 }
 
 export function planWorkout(exercises, { minutes, movements, energy, equipment }) {
   const profile = energyLevels[energy];
+  const rest = 60 - profile.work;
+  const budget = minutes * 60;
   const groups = movements.map((movement) => exercises.flatMap((exercise) => {
     if (exercise.movement !== movement) return [];
     const available = exercise.equipment.find((option) => equipment.includes(option));
     return !exercise.equipment.length || available ? [{ ...exercise, equipment: available ?? null }] : [];
   }));
   const sequence = [];
-  for (let index = 0; groups.some((group) => index < group.length) && sequence.length < minutes; index += 1) {
+  let roundSeconds = 0;
+  for (let index = 0; groups.some((group) => index < group.length) && roundSeconds < budget; index += 1) {
     for (const group of groups) {
-      if (group[index] && sequence.length < minutes) sequence.push(group[index]);
+      const exercise = group[index];
+      if (!exercise) continue;
+      const timed = timedExercises[exercise.id];
+      const seconds = (timed ? timed.seconds * timed.sides : profile.work) + rest;
+      if (roundSeconds + seconds > budget) continue;
+      sequence.push(exercise);
+      roundSeconds += seconds;
     }
   }
-  const rounds = sequence.length ? Math.min(profile.rounds, Math.floor(minutes / sequence.length)) : 0;
+  const rounds = roundSeconds ? Math.min(profile.rounds, Math.floor(budget / roundSeconds)) : 0;
   const missing = movements.filter((movement) => !sequence.some((exercise) => exercise.movement === movement));
-  return { sequence, missing, rounds, minutes: rounds * sequence.length, work: profile.work, rest: 60 - profile.work };
+  return { sequence, missing, rounds, minutes: Math.ceil(rounds * roundSeconds / 60), work: profile.work, rest };
 }

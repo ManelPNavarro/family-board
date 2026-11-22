@@ -54,7 +54,9 @@ test('the workout catalog seeds once and the planner respects time, equipment an
   db.exec(planks);
   const { exercises: fullCatalog } = await (await workouts(new Request(url), d1, {})).json();
   assert.equal(fullCatalog.length, 17);
-  const core = planWorkout(fullCatalog, { ...basic, movements: ['core'] });
+  const core = planWorkout(fullCatalog, { ...basic, minutes: 12, movements: ['core'] });
   assert.deepEqual(core.sequence.slice(-2).map(({ title }) => title), ['Plank', 'Side Plank']);
   assert.deepEqual(core.sequence.slice(-2).map(exerciseTarget), ['60 segons', '30 segons per costat']);
+  assert.equal(core.rounds, 1);
+  assert.equal(core.minutes, 7);
 });
