@@ -121,24 +121,27 @@ function MealWeek({ week, today }) {
         <ol className="meal-grid">
           {dates.map((date) => {
             const label = dayFormat.format(atMidnight(date));
+            const slots = mealTypes.map((meal) => {
+              const entry = entries[mealKey(date, meal)];
+              return { meal, entry, value: entry?.school ? schoolLabel : entry?.notes };
+            });
+            const visibleSlots = slots.filter(({ value }) => value);
+            const available = slots.find(({ value }) => !value);
+            if (available) visibleSlots.push(available);
             return (
               <li key={date} className="meal-grid-row" data-today={date === today || undefined}>
                 <h2><time dateTime={date} className="calendar-date">{label}</time>{date === today && <span>Avui</span>}</h2>
-                {mealTypes.map((meal, slot) => {
-                  const entry = entries[mealKey(date, meal)];
-                  const value = entry?.school ? schoolLabel : entry?.notes;
-                  return (
-                    <button className="meal-cell" data-school={entry?.school || undefined} key={meal} type="button" aria-haspopup="dialog"
-                      aria-label={`Àpat ${slot + 1}, ${label}: ${value || 'Afegeix un àpat'}`}
-                      disabled={message === sessionMessage} onClick={() => openEditor(date, meal)}>
-                      {entry?.school ? <span className="meal-school"><School size={16} aria-hidden="true" />{schoolLabel}</span> :
-                        entry?.dishes?.length ? <span className="meal-dish-summary">
-                          {entry.dishes.map((dish, index) => <span key={index} className="meal-cell-notes">{dish}</span>)}
-                        </span> : value ? <span className="meal-cell-notes">{value}</span> :
-                        <Plus className="meal-empty" size={20} aria-hidden="true" />}
-                    </button>
-                  );
-                })}
+                {visibleSlots.map(({ meal, entry, value }, slot) => (
+                  <button className="meal-cell" data-school={entry?.school || undefined} key={meal} type="button" aria-haspopup="dialog"
+                    aria-label={value ? `Àpat ${slot + 1}, ${label}: ${value}` : `Afegeix un àpat, ${label}`}
+                    disabled={message === sessionMessage} onClick={() => openEditor(date, meal)}>
+                    {entry?.school ? <span className="meal-school"><School size={16} aria-hidden="true" />{schoolLabel}</span> :
+                      entry?.dishes?.length ? <span className="meal-dish-summary">
+                        {entry.dishes.map((dish, index) => <span key={index} className="meal-cell-notes">{dish}</span>)}
+                      </span> : value ? <span className="meal-cell-notes">{value}</span> :
+                      <Plus className="meal-empty" size={20} aria-hidden="true" />}
+                  </button>
+                ))}
               </li>
             );
           })}
