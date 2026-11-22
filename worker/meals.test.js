@@ -97,4 +97,15 @@ test('weekly meals persist and each write replaces only its own slot', async (t)
   assert.deepEqual(withSnack.meals.find(({ meal }) => meal === 'snack').dishes, ['Pera']);
   assert.ok(!withSnack.dishHistory.includes('Iogurt'));
   assert.equal((await send('PUT', '', { ...dishes, dishes: ['Sopa'], create: true })).status, 200);
+  assert.equal((await send('GET', '?date=2027-01-01&week=2026-12-28')).status, 400);
+  assert.deepEqual(await (await send('GET', '?date=2027-01-02')).json(),
+    { meals: [], schoolLabel: 'Escola de prova' });
+  assert.equal((await send('PUT', '', { ...snack, date: '2027-01-02', dishes: [], school: true })).status, 200);
+  const daily = await (await send('GET', '?date=2027-01-01')).json();
+  assert.equal(daily.meals.length, 3);
+  assert.ok(daily.meals.every(({ date }) => date === '2027-01-01'));
+  assert.equal(Object.hasOwn(daily, 'dishHistory'), false);
+  assert.deepEqual((await (await send('GET', '?date=2027-01-02')).json()).meals, [
+    { date: '2027-01-02', meal: 'snack', school: true, notes: '', dishes: [] },
+  ]);
 });

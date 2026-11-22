@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, School, X } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Plus, School, Utensils, X } from 'lucide-react';
 import { mondayOf, shiftDate } from '../shared/dates.js';
 import { mealDishLimit, mealNotesLimit, mealTypes } from '../shared/meals.js';
 import { grocerySuggestions, searchKey } from '../shared/grocery-suggestions.js';
@@ -13,6 +13,76 @@ const atMidnight = (date) => new Date(`${date}T00:00:00Z`);
 const mealKey = (date, meal) => `${date}:${meal}`;
 const hasMeal = (entry) => Boolean(entry?.school || entry?.notes);
 const sessionMessage = 'Actualitza la pàgina per renovar la sessió.';
+
+function MealContents({ entry, schoolLabel }) {
+  if (entry.school) {
+    return <span className="meal-school"><School size={16} aria-hidden="true" />{schoolLabel}</span>;
+  }
+  if (entry.dishes?.length) {
+    return <span className="meal-dish-summary">
+      {entry.dishes.map((dish, index) => <span key={index} className="meal-cell-notes">{dish}</span>)}
+    </span>;
+  }
+  return <span className="meal-cell-notes">{entry.notes}</span>;
+}
+
+function PlannedMeal({ entry, schoolLabel }) {
+  return (
+    <>
+      <span className={`meal-type-badge meal-type-${entry.meal}`}>{mealLabels[entry.meal]}</span>
+      <MealContents entry={entry} schoolLabel={schoolLabel} />
+    </>
+  );
+}
+
+export function TodayMenu({ today }) {
+  const [plan, setPlan] = useState(null);
+
+  useEffect(() => {
+    let request;
+    async function refresh() {
+      if (document.visibilityState === 'hidden' || request) return;
+      const controller = new AbortController();
+      request = controller;
+      try {
+        const { meals, schoolLabel } = await api(`${endpoint}?date=${today}`, { signal: controller.signal });
+        if (!controller.signal.aborted) setPlan({ date: today, meals, schoolLabel });
+      } catch (failure) {
+        if (!controller.signal.aborted && failure.message === 'session') setPlan(null);
+      } finally {
+        request = null;
+      }
+    }
+
+    void refresh();
+    const interval = window.setInterval(refresh, 30_000);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      request?.abort();
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [today]);
+
+  if (plan?.date !== today) return null;
+  const entries = mealTypes.map((type) => plan.meals.find((entry) => entry.meal === type)).filter(hasMeal);
+  if (!entries.length) return null;
+
+  return (
+    <section className="card today-menu" aria-labelledby="today-menu-title">
+      <header className="card-header">
+        <span className="dashboard-card-icon"><Utensils size={21} aria-hidden="true" /></span>
+        <h2 id="today-menu-title">Menú d’avui</h2>
+        <a className="agenda-link" href="#menu">Veure menú <ArrowRight size={16} aria-hidden="true" /></a>
+      </header>
+      <ul className="today-meal-list">
+        {entries.map((entry) => (
+          <li key={entry.meal}><PlannedMeal entry={entry} schoolLabel={plan.schoolLabel} /></li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 function MealWeek({ week, today }) {
   const [entries, setEntries] = useState(null);
@@ -144,18 +214,15 @@ function MealWeek({ week, today }) {
             return (
               <li key={date} className="meal-grid-row" data-today={date === today || undefined}>
                 <h2><time dateTime={date} className="calendar-date">{label}</time>{date === today && <span>Avui</span>}</h2>
-                {visibleSlots.map(({ meal, entry, value }, slot) => (
+                {visibleSlots.map(({ meal, entry, value }) => (
                   <button className="meal-cell" data-school={entry?.school || undefined} key={meal} type="button" aria-haspopup="dialog"
-                      aria-label={`Àpat ${slot + 1}, ${label}: ${value}`}
+                    aria-label={`${mealLabels[meal]}, ${label}: ${value}`}
                     disabled={message === sessionMessage} onClick={() => openEditor(date, meal)}>
-                    {entry?.school ? <span className="meal-school"><School size={16} aria-hidden="true" />{schoolLabel}</span> :
-                      entry?.dishes?.length ? <span className="meal-dish-summary">
-                        {entry.dishes.map((dish, index) => <span key={index} className="meal-cell-notes">{dish}</span>)}
-                        </span> : <span className="meal-cell-notes">{value}</span>}
+                    <PlannedMeal entry={entry} schoolLabel={schoolLabel} />
                   </button>
                 ))}
                 {visibleSlots.length < mealTypes.length && (
-                  <button className="meal-cell" type="button" aria-haspopup="dialog"
+                  <button className="meal-cell meal-add-slot" type="button" aria-haspopup="dialog"
                     aria-label={`Afegeix un àpat, ${label}`} disabled={message === sessionMessage}
                     onClick={() => openEditor(date)}>
                     <Plus className="meal-empty" size={20} aria-hidden="true" />

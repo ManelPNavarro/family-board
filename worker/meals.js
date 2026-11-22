@@ -57,10 +57,15 @@ export async function meals(request, db, headers) {
 
   try {
     if (method !== 'PUT') {
+      const day = url.searchParams.get('date');
       const week = url.searchParams.get('week');
-      if (!validDate(week) || mondayOf(week) !== week) return result({ error: 'invalid_week' }, 400);
-      const weekEnd = shiftDate(week, 6);
-      const [plan, settings, history] = await db.batch([
+      const start = day ?? week;
+      if (!validDate(start) || (day === null && mondayOf(start) !== start) || (day !== null && week !== null)) {
+        return result({ error: day === null ? 'invalid_week' : 'invalid_date' }, 400);
+      }
+      const end = day ?? shiftDate(start, 6);
+      const range = [start, end];
+      const statements = [
         db.prepare(`
           WITH slots AS (
             SELECT date, meal, MAX(notes) AS notes, MAX(school) AS school
@@ -82,19 +87,22 @@ export async function meals(request, db, headers) {
           FROM slots LEFT JOIN meal_courses courses USING (date, meal)
           LEFT JOIN meal_dishes dish_list USING (date, meal)
           LEFT JOIN meal_entries current USING (date, meal)
-        `).bind(week, weekEnd, week, weekEnd, week, weekEnd, week, weekEnd, week, weekEnd),
+        `).bind(...range, ...range, ...range, ...range, ...range),
         db.prepare("SELECT value FROM meal_settings WHERE key = 'school_label'"),
-        db.prepare(`
+      ];
+      if (day === null) {
+        statements.push(db.prepare(`
           SELECT course, title FROM (
             SELECT course, title, last_seen FROM meal_course_history
             UNION ALL
             SELECT NULL AS course, title, last_seen FROM meal_dish_history
           )
           ORDER BY last_seen DESC, title COLLATE NOCASE
-        `),
-      ]);
+        `));
+      }
+      const [plan, settings, history] = await db.batch(statements);
       const courseHistory = Array.from({ length: coursesPerMeal }, () => []);
-      for (const { course, title } of history.results) {
+      for (const { course, title } of history?.results ?? []) {
         if (course !== null) courseHistory[course].push(title);
       }
       return result({
@@ -115,8 +123,10 @@ export async function meals(request, db, headers) {
           };
         }),
         schoolLabel: settings.results[0]?.value ?? 'Escola',
-        courseHistory,
-        dishHistory: [...new Set(history.results.map(({ title }) => title))],
+        ...(history && {
+          courseHistory,
+          dishHistory: [...new Set(history.results.map(({ title }) => title))],
+        }),
       });
     }
 
