@@ -610,6 +610,13 @@ a:focus-visible {
 }
 .meal-dialog textarea:focus-visible { outline: 2px solid var(--dashboard-accent); outline-offset: 2px; }
 .meal-dialog .meal-save { background: var(--dashboard-accent); color: #fff; font-weight: 650; }
+.meal-course-label, .meal-course-actions { display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
+.meal-course-label { margin-bottom: .35rem; font-weight: 650; }
+.meal-course-label span { color: var(--dashboard-muted); font-size: .82rem; }
+.meal-course-actions button { padding-inline: .8rem; }
+.meal-course-actions .meal-save { margin-inline-start: auto; }
+.meal-course-summary { display: grid; gap: .35rem; }
+.meal-course-summary small { display: block; color: var(--dashboard-muted); font-weight: 650; }
 
 @media (min-width: 47rem) {
   .meal-grid-row { grid-template-columns: minmax(7rem, .75fr) repeat(3, minmax(0, 1fr)); }

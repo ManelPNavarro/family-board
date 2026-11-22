@@ -9,6 +9,7 @@ test('weekly meals persist and each write replaces only its own slot', async (t)
   t.after(() => db.close());
   db.exec(await readFile(new URL('../migrations/0005_meals.sql', import.meta.url), 'utf8'));
   db.exec(await readFile(new URL('../migrations/0006_school_meals.sql', import.meta.url), 'utf8'));
+  db.exec(await readFile(new URL('../migrations/0007_meal_courses.sql', import.meta.url), 'utf8'));
   const d1 = {
     batch: async (statements) => statements.map((statement) => statement.all()),
     prepare(sql) {
@@ -57,4 +58,18 @@ test('weekly meals persist and each write replaces only its own slot', async (t)
   assert.equal((await send('PUT', '', { ...lunch, notes: ' ' })).status, 200);
   assert.deepEqual((await (await send('GET', week)).json()).meals, [{ ...dinner, school: false }]);
   assert.deepEqual((await (await send('GET', '?week=2027-01-04')).json()).meals, [{ ...nextWeek, school: false }]);
+
+  const courses = { date: lunch.date, meal: lunch.meal, courses: [' Arròs ', 'Truita', 'Pera'], school: false };
+  assert.equal((await send('PUT', '', { ...courses, courses: ['Arròs'] })).status, 400);
+  const saved = await (await send('PUT', '', courses)).json();
+  assert.deepEqual(saved.courses, ['Arròs', 'Truita', 'Pera']);
+  const planned = await (await send('GET', week)).json();
+  assert.deepEqual(planned.meals.find(({ meal }) => meal === 'lunch'), saved);
+  assert.deepEqual(planned.courseHistory, [['Arròs'], ['Truita'], ['Pera']]);
+  assert.equal((await send('PUT', '', { ...courses, school: true })).status, 200);
+  assert.equal((await (await send('GET', week)).json()).meals.find(({ meal }) => meal === 'lunch').school, true);
+  assert.equal((await send('PUT', '', { ...courses, courses: ['', 'Truita', ''] })).status, 200);
+  const replaced = await (await send('GET', week)).json();
+  assert.deepEqual(replaced.meals.find(({ meal }) => meal === 'lunch').courses, ['', 'Truita', '']);
+  assert.deepEqual(replaced.courseHistory, [['Arròs'], ['Truita'], ['Pera']]);
 });
