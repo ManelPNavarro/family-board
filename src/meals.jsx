@@ -20,10 +20,10 @@ function MealContents({ entry, schoolLabel }) {
   }
   if (entry.dishes?.length) {
     return <span className="meal-dish-summary">
-      {entry.dishes.map((dish, index) => <span key={index} className="meal-cell-notes">{dish}</span>)}
+      {entry.dishes.map((dish, index) => <span key={index} className="meal-dish-card">{dish}</span>)}
     </span>;
   }
-  return <span className="meal-cell-notes">{entry.notes}</span>;
+  return <span className="meal-dish-card">{entry.notes}</span>;
 }
 
 function PlannedMeal({ entry, schoolLabel }) {

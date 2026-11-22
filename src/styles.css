@@ -613,7 +613,16 @@ a:focus-visible {
   text-align: start;
 }
 .meals .meal-cell:hover { border-color: #b7b0e3; background: #faf9ff; }
-.meal-cell-notes { white-space: pre-wrap; overflow-wrap: anywhere; }
+.meal-dish-card {
+  display: block;
+  min-width: 0;
+  padding: .4rem .55rem;
+  border: 1px solid #e3e2ef;
+  border-radius: .55rem;
+  background: #faf9ff;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 .meal-type-badge {
   justify-self: start;
   max-width: 100%;
