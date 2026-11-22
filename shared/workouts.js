@@ -19,6 +19,11 @@ export const energyLevels = {
   high: { label: 'Alta', work: 40, rounds: 4 },
 };
 
+export function suggestedReps({ id, movement }) {
+  if (id === 'pull-up' || id === 'chin-up') return 5;
+  return movement === 'core' ? 20 : 15;
+}
+
 export function planWorkout(exercises, { minutes, movements, energy, equipment }) {
   const profile = energyLevels[energy];
   const groups = movements.map((movement) => exercises.flatMap((exercise) => {

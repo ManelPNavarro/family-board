@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
-import { planWorkout } from '../shared/workouts.js';
+import { planWorkout, suggestedReps } from '../shared/workouts.js';
 import { workouts } from './workouts.js';
 
 test('the workout catalog seeds once and the planner respects time, equipment and selected groups', async (t) => {
@@ -39,8 +39,11 @@ test('the workout catalog seeds once and the planner respects time, equipment an
   const { exercises: expanded } = await (await workouts(new Request(url), d1, {})).json();
   assert.equal(expanded.length, 15);
   assert.equal(expanded.find(({ id }) => id === 'pull-up').title, 'Pull-ups');
+  assert.deepEqual(high.sequence.map(suggestedReps), [15, 5, 15, 5]);
+  assert.deepEqual(withEquipment.sequence.map(suggestedReps), [20, 15]);
   const legs = planWorkout(expanded, { ...basic, movements: ['legs'], equipment: ['dumbbell-12'] });
   assert.deepEqual(legs.sequence.map(({ id }) => id), ['dumbbell-lunge', 'dumbbell-squat', 'glute-bridge']);
+  assert.deepEqual(legs.sequence.map(suggestedReps), [15, 15, 15]);
   const withoutBench = planWorkout(expanded, { ...basic, movements: ['push'], equipment: [] });
   assert.ok(!withoutBench.sequence.some(({ id }) => id === 'triceps-dip'));
   const withBench = planWorkout(expanded, { ...basic, movements: ['push'], equipment: ['bench'] });
