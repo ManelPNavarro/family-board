@@ -4,6 +4,7 @@ import { groceries } from './groceries.js';
 import { meals } from './meals.js';
 import { tasks } from './tasks.js';
 import { getWeather } from './weather.js';
+import { workouts } from './workouts.js';
 
 let accessKeys;
 let keysIssuer;
@@ -53,6 +54,7 @@ export default {
       return tasks(request, env.DB, headers);
     }
     if (pathname === '/api/meals') return meals(request, env.DB, headers);
+    if (pathname === '/api/workouts') return workouts(request, env.DB, headers);
 
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       return new Response(null, {

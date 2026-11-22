@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CalendarDays, House, ListChecks, Menu, ShoppingBasket, Utensils, X } from 'lucide-react';
+import { CalendarDays, Dumbbell, House, ListChecks, Menu, ShoppingBasket, Utensils, X } from 'lucide-react';
 import { dayKey, timeZone } from '../shared/dates.js';
 import { Agenda } from './agenda.jsx';
 import { Alerts } from './alerts.jsx';
@@ -8,6 +8,7 @@ import { GroceryList } from './groceries.jsx';
 import { Meals, TodayMenu } from './meals.jsx';
 import { Tasks, TaskOverview } from './tasks.jsx';
 import { Weather, useWeather } from './weather.jsx';
+import { Workouts } from './workouts.jsx';
 import { weatherAlerts } from './weather-alerts.js';
 import './styles.css';
 
@@ -29,6 +30,7 @@ const pages = [
   { id: 'compra', label: 'Compra', icon: ShoppingBasket },
   { id: 'tasques', label: 'Tasques', icon: ListChecks },
   { id: 'menu', label: 'Menú', icon: Utensils },
+  { id: 'entrenaments', label: 'Entrenaments', icon: Dumbbell },
 ];
 const navigationPreference = 'family-board:hide-navigation';
 // Use hash links within the installed shopping shortcut's /compra/ scope.
@@ -207,6 +209,7 @@ function App({ now, today, weather }) {
         {page === 'compra' && <GroceryList />}
         {page === 'tasques' && <Tasks today={today} />}
         {page === 'menu' && <Meals today={today} />}
+        {page === 'entrenaments' && <Workouts />}
         {(page === 'avui' || page === 'calendari') && (
           <>
             <header className="dashboard-heading">

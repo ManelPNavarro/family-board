@@ -206,6 +206,52 @@ a:focus-visible {
 
 .event strong { font-weight: 650; overflow-wrap: anywhere; }
 .dashboard-footer { margin-top: 1rem; color: var(--dashboard-muted); font-size: .8125rem; }
+
+.workout-layout { display: grid; align-items: start; gap: 1rem; }
+.workout-form, .workout-form > label, .workout-form fieldset { display: grid; gap: .45rem; }
+.workout-form { gap: .85rem; }
+.workout-form > label, .workout-form legend { font-weight: 650; }
+.workout-form :is(input[type="number"], select) {
+  width: 100%;
+  min-height: 44px;
+  padding: .4rem .6rem;
+  border: 1px solid #b7b6d0;
+  border-radius: .65rem;
+  background: #fff;
+}
+.workout-form select { appearance: auto; }
+.workout-options { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .35rem; }
+.workout-options label {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  min-height: 44px;
+  padding: .35rem .6rem;
+  border-radius: .65rem;
+  background: #f5f6fa;
+  cursor: pointer;
+}
+.workout-options input { appearance: auto; accent-color: var(--dashboard-accent); width: 1.15rem; height: 1.15rem; }
+.workout-generate { min-height: 44px; padding: .45rem .8rem; border-radius: .65rem; background: var(--dashboard-accent); color: #fff; font-weight: 650; cursor: pointer; }
+.workout-generate:disabled { opacity: .55; cursor: default; }
+.workout-meta { color: var(--dashboard-muted); font-size: .88rem; }
+.workout-progress { display: flex; align-items: center; gap: .65rem; margin-block: .65rem; font-variant-numeric: tabular-nums; }
+.workout-progress progress { flex: 1; min-width: 0; accent-color: var(--dashboard-accent); }
+.workout-round { margin-top: .9rem; }
+.workout-round h3 { margin-bottom: .4rem; font-weight: 700; }
+.workout-check { display: grid; grid-template-columns: auto minmax(0, 1fr); align-content: center; column-gap: .65rem; row-gap: .05rem; border-radius: .85rem; }
+.workout-check input { grid-row: span 2; }
+.workout-check small { grid-column: 2; color: var(--dashboard-muted); }
+.workout-catalog { margin-top: 1rem; }
+.workout-catalog summary { font-weight: 700; cursor: pointer; }
+.workout-catalog-list { display: grid; gap: .4rem; margin-top: .7rem; }
+.workout-catalog-list li { display: grid; gap: .1rem; padding: .5rem .65rem; border-radius: .65rem; background: #f5f6fa; }
+.workout-catalog-list span { color: var(--dashboard-muted); font-size: .85rem; }
+
+@media (min-width: 47rem) {
+  .workout-layout:has(.workout-plan) { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); }
+  .workout-catalog-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .dashboard-update {
   display: flex;
   flex-wrap: wrap;
