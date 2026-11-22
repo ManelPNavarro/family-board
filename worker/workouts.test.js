@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
-import { planWorkout, suggestedReps } from '../shared/workouts.js';
+import { exerciseTarget, planWorkout } from '../shared/workouts.js';
 import { workouts } from './workouts.js';
 
 test('the workout catalog seeds once and the planner respects time, equipment and selected groups', async (t) => {
@@ -39,13 +39,22 @@ test('the workout catalog seeds once and the planner respects time, equipment an
   const { exercises: expanded } = await (await workouts(new Request(url), d1, {})).json();
   assert.equal(expanded.length, 15);
   assert.equal(expanded.find(({ id }) => id === 'pull-up').title, 'Pull-ups');
-  assert.deepEqual(high.sequence.map(suggestedReps), [15, 5, 15, 5]);
-  assert.deepEqual(withEquipment.sequence.map(suggestedReps), [20, 15]);
+  assert.deepEqual(high.sequence.map(exerciseTarget), ['15 repeticions', '5 repeticions', '15 repeticions', '5 repeticions']);
+  assert.deepEqual(withEquipment.sequence.map(exerciseTarget), ['20 repeticions', '15 repeticions']);
   const legs = planWorkout(expanded, { ...basic, movements: ['legs'], equipment: ['dumbbell-12'] });
   assert.deepEqual(legs.sequence.map(({ id }) => id), ['dumbbell-lunge', 'dumbbell-squat', 'glute-bridge']);
-  assert.deepEqual(legs.sequence.map(suggestedReps), [15, 15, 15]);
+  assert.deepEqual(legs.sequence.map(exerciseTarget), ['15 repeticions', '15 repeticions', '15 repeticions']);
   const withoutBench = planWorkout(expanded, { ...basic, movements: ['push'], equipment: [] });
   assert.ok(!withoutBench.sequence.some(({ id }) => id === 'triceps-dip'));
   const withBench = planWorkout(expanded, { ...basic, movements: ['push'], equipment: ['bench'] });
   assert.ok(withBench.sequence.some(({ id }) => id === 'triceps-dip'));
+
+  const planks = await readFile(new URL('../migrations/0012_core_planks.sql', import.meta.url), 'utf8');
+  db.exec(planks);
+  db.exec(planks);
+  const { exercises: fullCatalog } = await (await workouts(new Request(url), d1, {})).json();
+  assert.equal(fullCatalog.length, 17);
+  const core = planWorkout(fullCatalog, { ...basic, movements: ['core'] });
+  assert.deepEqual(core.sequence.slice(-2).map(({ title }) => title), ['Plank', 'Side Plank']);
+  assert.deepEqual(core.sequence.slice(-2).map(exerciseTarget), ['60 segons', '30 segons per costat']);
 });

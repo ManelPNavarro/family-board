@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Dumbbell, ListChecks } from 'lucide-react';
-import { catalogEquipmentLabels, energyLevels, equipmentLabels, movementLabels, planWorkout, suggestedReps } from '../shared/workouts.js';
+import { catalogEquipmentLabels, energyLevels, equipmentLabels, exerciseTarget, movementLabels, planWorkout } from '../shared/workouts.js';
 import { api } from './api.js';
 
 const workoutKey = 'family-board:current-workout';
@@ -23,7 +23,7 @@ function WorkoutChecklist({ workout, onCheck }) {
         <span className="dashboard-card-icon"><ListChecks size={21} aria-hidden="true" /></span>
         <h2 id="workout-plan-title">El teu entrenament</h2>
       </header>
-      <p className="workout-meta">Uns {plan.minutes} min · Ritme orientatiu de {plan.work} s d’exercici i {plan.rest} s de descans per casella</p>
+      <p className="workout-meta">Uns {plan.minutes} min · {plan.rest} s de descans orientatiu entre exercicis</p>
       <div className="workout-progress">
         <progress max={total} value={checked.length} aria-label="Progrés de l’entrenament" />
         <span role="status">{checked.length} / {total}</span>
@@ -40,7 +40,7 @@ function WorkoutChecklist({ workout, onCheck }) {
                   <label className="grocery-check workout-check">
                     <input type="checkbox" checked={complete} onChange={() => onCheck(id)} />
                     <span lang="en">{exercise.title}</span>
-                    <small>{suggestedReps(exercise)} repeticions · {exercise.equipment ? equipmentLabels[exercise.equipment] : noEquipment}</small>
+                    <small>{exerciseTarget(exercise)} · {exercise.equipment ? equipmentLabels[exercise.equipment] : noEquipment}</small>
                   </label>
                 </li>
               );
@@ -159,13 +159,13 @@ export function Workouts() {
       {exercises && (
         <details className="card workout-catalog">
           <summary>Catàleg d’exercicis ({exercises.length})</summary>
-          <p className="workout-meta">Repeticions orientatives per ronda</p>
+          <p className="workout-meta">Repeticions i durada orientatives per ronda</p>
           <ul className="workout-catalog-list">
             {exercises.map((exercise) => (
               <li key={exercise.id}>
                 <strong lang="en">{exercise.title}</strong>
                 <span>
-                  {suggestedReps(exercise)} repeticions · <span lang="en">{exercise.movement === 'legs' ? 'Legs' : movementLabels[exercise.movement]} · {exercise.equipment.map((id) => catalogEquipmentLabels[id]).join(' or ') || 'No equipment'}</span>
+                  {exerciseTarget(exercise)} · <span lang="en">{exercise.movement === 'legs' ? 'Legs' : movementLabels[exercise.movement]} · {exercise.equipment.map((id) => catalogEquipmentLabels[id]).join(' or ') || 'No equipment'}</span>
                 </span>
               </li>
             ))}

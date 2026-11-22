@@ -19,9 +19,11 @@ export const energyLevels = {
   high: { label: 'Alta', work: 40, rounds: 4 },
 };
 
-export function suggestedReps({ id, movement }) {
-  if (id === 'pull-up' || id === 'chin-up') return 5;
-  return movement === 'core' ? 20 : 15;
+export function exerciseTarget({ id, movement }) {
+  if (id === 'plank') return '60 segons';
+  if (id === 'side-plank') return '30 segons per costat';
+  if (id === 'pull-up' || id === 'chin-up') return '5 repeticions';
+  return movement === 'core' ? '20 repeticions' : '15 repeticions';
 }
 
 export function planWorkout(exercises, { minutes, movements, energy, equipment }) {
