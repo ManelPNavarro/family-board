@@ -628,6 +628,8 @@ a:focus-visible {
 }
 .tasks .task-date-shortcuts button:is(:hover, [aria-pressed="true"]) { background: #eeebff; border-color: #b7b6d0; }
 .task-form .task-save { background: var(--dashboard-accent); color: #fff; font-weight: 650; }
+.task-form .task-delete { grid-column: 1 / -1; color: #9c2a35; font-weight: 650; }
+.task-form .task-delete:not(:disabled):hover { background: #fbeaec; }
 .tasks .task-add-trigger span { display: inline; }
 
 @media (max-width: 32rem) {

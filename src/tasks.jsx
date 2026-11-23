@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowRight, CalendarDays, ListChecks, Pencil, Plus, X } from 'lucide-react';
+import { ArrowRight, CalendarDays, ListChecks, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { compareTasks, taskDates, taskPeriods, taskPriorities, validDueDate } from '../shared/tasks.js';
 import { api } from './api.js';
 
@@ -10,6 +10,7 @@ const messages = {
   session: 'Actualitza la pàgina per renovar la sessió.',
   unavailable: 'No s’han pogut carregar les tasques. Es tornarà a provar automàticament.',
   save: 'No s’ha pogut desar el canvi. Torna-ho a provar.',
+  remove: 'No s’ha pogut eliminar la tasca. Torna-ho a provar.',
 };
 const dueDateFormat = new Intl.DateTimeFormat('ca-ES', { timeZone: 'UTC', dateStyle: 'medium' });
 
@@ -140,18 +141,24 @@ function useTasks() {
     setBusy(true);
     setSaveError(false);
     try {
-      const { task } = await api(method === 'POST' ? path : `${path}/${id}`, {
+      const data = await api(method === 'POST' ? path : `${path}/${id}`, {
         method,
-        body: JSON.stringify(fields),
-        headers: { 'Content-Type': 'application/json' },
+        ...(fields && {
+          body: JSON.stringify(fields),
+          headers: { 'Content-Type': 'application/json' },
+        }),
       });
-      setTasks((previous) => previous.some((item) => item.id === task.id)
-        ? previous.map((item) => item.id === task.id ? task : item)
-        : [...previous, task]);
+      setTasks((previous) => {
+        if (method === 'DELETE') return previous.filter((item) => item.id !== id);
+        const { task } = data;
+        return previous.some((item) => item.id === task.id)
+          ? previous.map((item) => item.id === task.id ? task : item)
+          : [...previous, task];
+      });
       return true;
     } catch (error) {
       if (error.message === 'session') setMessage('session');
-      else setSaveError(true);
+      else setSaveError(method === 'DELETE' ? 'remove' : 'save');
       return false;
     } finally {
       saving.current = false;
@@ -205,10 +212,15 @@ export function Tasks({ today }) {
     dialog.current?.close();
   }
 
+  async function removeTask() {
+    if (!window.confirm(`Vols eliminar «${editor.task.title}» definitivament?`)) return;
+    if (await save('DELETE', editor.id)) dialog.current?.close();
+  }
+
   const enabled = tasks !== null && message !== 'session' && !busy;
   const pending = tasks?.filter((task) => !task.completed).sort(compareTasks) ?? [];
   const completed = tasks?.filter((task) => task.completed) ?? [];
-  const error = saveError ? messages.save : messages[message];
+  const error = messages[saveError || message];
 
   return (
     <section className="groceries tasks" aria-labelledby="tasks-title">
@@ -273,6 +285,11 @@ export function Tasks({ today }) {
             </select>
           </label>
           <button type="submit" className="task-save" disabled={!enabled}>Desa</button>
+          {editor?.task && (
+            <button type="button" className="task-delete" disabled={!enabled} onClick={removeTask}>
+              <Trash2 size={17} aria-hidden="true" /> Elimina la tasca
+            </button>
+          )}
         </form>
         {editor && error && <p className="agenda-message" role="status">{error}</p>}
       </dialog>

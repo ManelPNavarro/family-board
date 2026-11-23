@@ -12,12 +12,12 @@ export async function tasks(request, db, headers) {
   const url = new URL(request.url);
   const id = url.pathname === listPath ? null : url.pathname.slice(listPath.length + 1);
   const { method } = request;
-  const result = (body, status = 200) => method === 'HEAD'
+  const result = (body, status = 200) => method === 'HEAD' || status === 204
     ? new Response(null, { status, headers })
     : Response.json(body, { status, headers });
 
   if (id !== null && !uuid.test(id)) return result({ error: 'not_found' }, 404);
-  const allowed = id ? ['PATCH'] : ['GET', 'HEAD', 'POST'];
+  const allowed = id ? ['PATCH', 'DELETE'] : ['GET', 'HEAD', 'POST'];
   if (!allowed.includes(method)) {
     return new Response(null, { status: 405, headers: { ...headers, Allow: allowed.join(', ') } });
   }
@@ -29,6 +29,11 @@ export async function tasks(request, db, headers) {
     }
 
     if (request.headers.get('Origin') !== url.origin) return result({ error: 'forbidden' }, 403);
+    if (method === 'DELETE') {
+      await db.prepare('DELETE FROM tasks WHERE id = ?').bind(id).run();
+      return result(null, 204);
+    }
+
     const invalid = { error: 'invalid_task' };
     if (request.headers.get('Content-Type')?.split(';')[0].trim() !== 'application/json') {
       return result(invalid, 415);

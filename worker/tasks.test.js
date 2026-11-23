@@ -6,7 +6,7 @@ import { dayKey } from '../shared/dates.js';
 import { compareTasks, taskDates, taskPeriods } from '../shared/tasks.js';
 import { tasks } from './tasks.js';
 
-test('tasks persist edits and can be completed and reopened', async (t) => {
+test('tasks persist edits and can be completed, reopened and deleted', async (t) => {
   const db = new DatabaseSync(':memory:');
   t.after(() => db.close());
   const migration = await readFile(new URL('../migrations/0004_tasks.sql', import.meta.url), 'utf8');
@@ -19,6 +19,7 @@ test('tasks persist edits and can be completed and reopened', async (t) => {
       const access = (...params) => ({
         all: () => ({ results: statement.all(...params) }),
         first: () => statement.get(...params) ?? null,
+        run: () => statement.run(...params),
       });
       return { ...access(), bind: access };
     },
@@ -30,7 +31,7 @@ test('tasks persist edits and can be completed and reopened', async (t) => {
   const send = (method, body, path = '', requestOrigin = origin) => tasks(new Request(
     `${origin}/api/tasks${path}`, {
       method,
-      headers: { Origin: requestOrigin, 'Content-Type': 'application/json' },
+      headers: { Origin: requestOrigin, ...(body !== undefined && { 'Content-Type': 'application/json' }) },
       body: body === undefined ? undefined : JSON.stringify(body),
     },
   ), d1, { 'Cache-Control': 'private, no-store' });
@@ -55,6 +56,15 @@ test('tasks persist edits and can be completed and reopened', async (t) => {
   assert.equal((await send('PATCH', { completed: false }, suffix)).status, 200);
   assert.equal((await (await send('GET')).json()).tasks[0].completed, false);
   assert.equal(await (await send('HEAD')).text(), '');
+  assert.equal((await send('DELETE', undefined, suffix, 'https://other.example')).status, 403);
+  assert.equal((await send('DELETE')).status, 405);
+  assert.equal((await send('DELETE', undefined, '/bad-id')).status, 404);
+  assert.equal((await (await send('GET')).json()).tasks.length, 1);
+  const deleted = await send('DELETE', undefined, suffix);
+  assert.equal(deleted.status, 204);
+  assert.equal(await deleted.text(), '');
+  assert.deepEqual(await (await send('GET')).json(), { tasks: [] });
+  assert.equal((await send('DELETE', undefined, suffix)).status, 204);
 });
 
 test('pending tasks sort by urgency, then deadline, with undated tasks last in each priority', () => {
