@@ -1,10 +1,14 @@
 @import "tailwindcss";
 
 :root {
+  --dashboard-ink: #1e2240;
+  --dashboard-muted: #535a75;
+  --dashboard-accent: #4f43b3;
+  --dashboard-border: #e3e5ef;
   color-scheme: light;
   font-family: system-ui, sans-serif;
   background: #f3f4fa;
-  color: #1e2240;
+  color: var(--dashboard-ink);
   font-synthesis: none;
 }
 
@@ -27,10 +31,6 @@ a:focus-visible {
 }
 
 .dashboard {
-  --dashboard-ink: #1e2240;
-  --dashboard-muted: #535a75;
-  --dashboard-accent: #4f43b3;
-  --dashboard-border: #e3e5ef;
   min-height: 100dvh;
   display: grid;
   grid-template-columns: 14rem minmax(0, 1fr);
@@ -786,14 +786,14 @@ a:focus-visible {
   margin: auto;
   overflow-y: auto;
   padding: clamp(1rem, 4vw, 1.5rem);
-  border: 1px solid #d2dfd2;
+  border: 1px solid var(--dashboard-border);
   border-radius: 1.3rem;
   background: #fff;
-  color: #163627;
-  box-shadow: 0 16px 44px #16362735;
+  color: var(--dashboard-ink);
+  box-shadow: 0 16px 44px #1e224035;
 }
 
-.alerts-dialog::backdrop { background: #0c2319a0; }
+.alerts-dialog::backdrop { background: #1e224099; }
 .alert-list { display: grid; gap: .6rem; margin-block: .8rem 1rem; }
 .alert-item {
   display: flex;
@@ -801,7 +801,7 @@ a:focus-visible {
   gap: .75rem;
   padding: .8rem;
   border-radius: .85rem;
-  background: #f1f5ed;
+  background: #f5f6fa;
 }
 
 .alert-icon {
@@ -811,21 +811,22 @@ a:focus-visible {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: .65rem;
-  background: #dcebd9;
+  background: #eeebff;
+  color: var(--dashboard-accent);
 }
 
 .alert-item h3 { font-size: 1.05rem; font-weight: 700; overflow-wrap: anywhere; }
-.alert-item p { color: #436352; }
+.alert-item p { color: var(--dashboard-muted); }
 .alert-dismiss {
   display: block;
   width: 100%;
   min-height: 48px;
   border-radius: .7rem;
-  background: #163627;
+  background: var(--dashboard-accent);
   color: #fff;
   font-weight: 650;
   cursor: pointer;
 }
 
-.alert-dismiss:hover { background: #235438; }
-.alert-dismiss:focus-visible { outline: 2px solid #1d6947; outline-offset: 3px; }
+.alert-dismiss:hover { background: #413594; }
+.alert-dismiss:focus-visible { outline: 2px solid var(--dashboard-accent); outline-offset: 3px; }
