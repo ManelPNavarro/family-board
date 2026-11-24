@@ -64,7 +64,7 @@ a:focus-visible {
 :is(.dashboard-navigation-toggle, .dashboard-mobile-toggle):hover { background: #e3defb; }
 :is(.dashboard-navigation-toggle, .dashboard-mobile-toggle):focus-visible { outline: 2px solid var(--dashboard-accent); outline-offset: 3px; }
 
-.brand, .dashboard-links a {
+.brand, .dashboard-links :is(a, button) {
   display: flex;
   align-items: center;
   gap: .7rem;
@@ -89,9 +89,11 @@ a:focus-visible {
 
 .brand-icon { color: #fff; background: #5045b4; }
 .dashboard-links { display: grid; gap: .35rem; }
-.dashboard-links a { padding: .6rem .7rem; border-radius: .75rem; color: var(--dashboard-muted); }
+.dashboard-links :is(a, button) { padding: .6rem .7rem; border-radius: .75rem; color: var(--dashboard-muted); }
 .dashboard-links a[aria-current] { background: #eeebff; color: #3e339e; }
-.dashboard-links a:hover:not([aria-current]) { background: #f3f4fa; }
+.dashboard-links :is(a, button):hover:not([aria-current]) { background: #f3f4fa; }
+.dashboard-links .dashboard-reload { color: var(--dashboard-accent); text-align: start; cursor: pointer; }
+.dashboard-reload:focus-visible { outline: 2px solid var(--dashboard-accent); outline-offset: 2px; }
 
 .dashboard-main {
   width: 100%;

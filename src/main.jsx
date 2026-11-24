@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CalendarDays, Dumbbell, House, ListChecks, Menu, ShoppingBasket, Utensils, X } from 'lucide-react';
+import { CalendarDays, Dumbbell, House, ListChecks, Menu, RefreshCw, ShoppingBasket, Utensils, X } from 'lucide-react';
 import { dayKey, timeZone } from '../shared/dates.js';
 import { Agenda } from './agenda.jsx';
 import { Alerts } from './alerts.jsx';
@@ -87,6 +87,16 @@ function App({ now, today, weather }) {
     } catch {
       // The menu can still be toggled when storage is unavailable.
     }
+  }
+
+  function reloadPage() {
+    if (!status.update) {
+      window.location.reload();
+      return;
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set('v', status.update.slice(0, 12));
+    window.location.replace(url);
   }
 
   useEffect(() => {
@@ -192,6 +202,10 @@ function App({ now, today, weather }) {
               <span>{label}</span>
             </a>
           ))}
+          <button type="button" className="dashboard-reload" onClick={reloadPage}>
+            <RefreshCw size={19} aria-hidden="true" />
+            <span>Recarrega la pàgina</span>
+          </button>
         </nav>
       </header>
 
@@ -199,11 +213,7 @@ function App({ now, today, weather }) {
         {status.update && (
           <div className="dashboard-update">
             <p role="status">Hi ha una versió nova.</p>
-            <button type="button" onClick={() => {
-              const url = new URL(window.location.href);
-              url.searchParams.set('v', status.update.slice(0, 12));
-              window.location.replace(url);
-            }}>Actualitza</button>
+            <button type="button" onClick={reloadPage}>Actualitza</button>
           </div>
         )}
         {page === 'compra' && <GroceryList />}
