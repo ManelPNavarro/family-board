@@ -46,7 +46,7 @@ export default {
       return new Response('Accés restringit', { status: 403, headers });
     }
 
-    const { pathname } = new URL(request.url);
+    const { pathname, searchParams } = new URL(request.url);
     if (pathname === '/api/groceries' || pathname.startsWith('/api/groceries/')) {
       return groceries(request, env.DB, headers);
     }
@@ -61,6 +61,12 @@ export default {
         status: 405,
         headers: { ...headers, Allow: 'GET, HEAD' },
       });
+    }
+
+    if (pathname === '/compra' || pathname === '/compra/' || pathname === '/compra/index.html') {
+      searchParams.set('legacy', 'compra');
+      // Leaving the fragment out lets the browser carry it across the redirect.
+      return new Response(null, { status: 302, headers: { ...headers, Location: `/?${searchParams}` } });
     }
 
     if (pathname === '/api/status') {

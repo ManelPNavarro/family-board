@@ -89,8 +89,8 @@ delete the two secrets from both GitHub Actions and the Worker.
 ## Shopping list
 
 Install the full Family Board from `/` to open on the dashboard.
-Open `/compra/` to go directly to the shopping list. Its web app manifest
-lets you add it to a phone's home screen. Everyone authorized to use
+Open `/#compra` to go directly to the shopping list. Older `/compra/`
+shortcuts redirect to the main app. Everyone authorized to use
 Family Board shares the same list, stored in the Worker's D1 database.
 
 For a new database, apply the migrations in `migrations/` before deploying

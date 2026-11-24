@@ -44,7 +44,7 @@ test('the Worker requires a valid Access session for the dashboard and API', asy
   const wrongAudience = await sign('another-app');
   const expired = await sign(audience, 1);
   const bundle = '/assets/main-Abc123_4.js';
-  for (const path of ['/', '/compra/', '/compra.webmanifest', '/family-board.webmanifest', bundle, '/api/status', '/api/weather', '/api/calendar', '/api/groceries', '/api/groceries/history', '/api/tasks']) {
+  for (const path of ['/', '/compra/', '/family-board.webmanifest', bundle, '/api/status', '/api/weather', '/api/calendar', '/api/groceries', '/api/groceries/history', '/api/tasks']) {
     for (const token of [undefined, 'fake-token', wrongAudience, expired]) {
       const response = await worker.fetch(request(path, token), env);
       assert.equal(response.status, 403);
@@ -57,6 +57,11 @@ test('the Worker requires a valid Access session for the dashboard and API', asy
   const panel = await worker.fetch(request('/', valid), env);
   assert.equal(await panel.text(), 'Panel');
   assert.equal(panel.headers.get('Cache-Control'), 'private, no-store');
+
+  const legacy = await worker.fetch(request('/compra/?v=abc#avui', valid), env);
+  assert.equal(legacy.status, 302);
+  assert.equal(legacy.headers.get('Location'), '/?v=abc&legacy=compra');
+  assert.equal(legacy.headers.get('Cache-Control'), 'private, no-store');
 
   const asset = await worker.fetch(request(bundle, valid), env);
   assert.equal(asset.headers.get('Cache-Control'), 'private, no-cache');

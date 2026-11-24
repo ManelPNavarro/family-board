@@ -33,14 +33,15 @@ const pages = [
   { id: 'entrenaments', label: 'Entrenaments', icon: Dumbbell },
 ];
 const navigationPreference = 'family-board:hide-navigation';
-// Use hash links within the installed shopping shortcut's /compra/ scope.
-const shoppingEntry = ['/compra', '/compra/'].includes(window.location.pathname);
+
+function pageFromHash(hash) {
+  const name = hash.slice(1);
+  const id = name === 'home' ? 'avui' : name === 'calendario' ? 'calendari' : name;
+  return pages.some((page) => page.id === id) ? id : null;
+}
 
 function currentPage() {
-  const hash = window.location.hash.slice(1);
-  const id = hash === 'calendario' ? 'calendari' : hash;
-  if (pages.some((page) => page.id === id)) return id;
-  return shoppingEntry ? 'compra' : 'avui';
+  return pageFromHash(window.location.hash) ?? 'avui';
 }
 
 function FamilyBoard() {
@@ -196,7 +197,7 @@ function App({ now, today, weather }) {
         </div>
         <nav className="dashboard-links" id="dashboard-links" aria-label="Seccions">
           {pages.map(({ id, label, icon: Icon }) => (
-            <a key={id} href={id === 'compra' && !shoppingEntry ? '/compra/' : `#${id}`}
+            <a key={id} href={`#${id}`}
               aria-current={page === id ? 'page' : undefined} onClick={() => setMobileMenuOpen(false)}>
               <Icon size={19} aria-hidden="true" />
               <span>{label}</span>
@@ -254,6 +255,13 @@ function App({ now, today, weather }) {
       </main>
     </div>
   );
+}
+
+const entryURL = new URL(window.location.href);
+if (entryURL.searchParams.get('legacy') === 'compra') {
+  entryURL.searchParams.delete('legacy');
+  entryURL.hash = pageFromHash(entryURL.hash) ?? 'compra';
+  window.history.replaceState(window.history.state, '', entryURL);
 }
 
 createRoot(document.getElementById('root')).render(<FamilyBoard />);
