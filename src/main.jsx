@@ -209,7 +209,7 @@ function App({ now, today, weather }) {
         </nav>
       </header>
 
-      <main className="dashboard-main">
+      <main className={page === 'avui' ? 'dashboard-main dashboard-today' : 'dashboard-main'}>
         {status.update && (
           <div className="dashboard-update">
             <p role="status">Hi ha una versió nova.</p>
@@ -222,13 +222,21 @@ function App({ now, today, weather }) {
         {page === 'entrenaments' && <Workouts />}
         {(page === 'avui' || page === 'calendari') && (
           <>
-            <header className="dashboard-heading">
-              <div>
-                <time dateTime={today} className="dashboard-date calendar-date">{date.format(now)}</time>
-                <h1>{pages.find(({ id }) => id === page).label}</h1>
-              </div>
-              <time dateTime={now.toISOString()} className="dashboard-clock">{clock.format(now)}</time>
-            </header>
+            {page === 'avui' ? (
+              <header className="today-heading">
+                <h1>Avui</h1>
+                <time dateTime={today} className="today-date calendar-date">{date.format(now)}</time>
+                <time dateTime={now.toISOString()} className="today-clock">{clock.format(now)}</time>
+              </header>
+            ) : (
+              <header className="dashboard-heading">
+                <div>
+                  <time dateTime={today} className="dashboard-date calendar-date">{date.format(now)}</time>
+                  <h1>Calendari</h1>
+                </div>
+                <time dateTime={now.toISOString()} className="dashboard-clock">{clock.format(now)}</time>
+              </header>
+            )}
             <div className="dashboard-content">
               {page === 'avui' && <Weather weather={weather} today={today} />}
               <Agenda today={today} week={page === 'calendari'} />

@@ -140,12 +140,43 @@ a:focus-visible {
   letter-spacing: -.06em;
 }
 
+.dashboard-today {
+  --today-gap: clamp(.75rem, 1.35vw, 1rem);
+  padding-block-start: clamp(.75rem, 1.5vw, 1.15rem);
+}
+
+.today-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(.5rem, 1.5vw, 1rem);
+  margin-bottom: var(--today-gap);
+  padding: .5rem clamp(.7rem, 1.6vw, 1rem);
+  border: 1px solid var(--dashboard-border);
+  border-radius: .9rem;
+  background: #fff;
+}
+
+.today-heading h1 { font-size: clamp(1.05rem, 2.25vw, 1.4rem); font-weight: 730; letter-spacing: -.025em; }
+.today-date { font-size: clamp(.8rem, 1.5vw, 1rem); color: var(--dashboard-muted); }
+.today-clock {
+  padding: .18rem .55rem;
+  border-radius: .55rem;
+  background: #eeebff;
+  color: var(--dashboard-accent);
+  font-size: clamp(1.05rem, 2.4vw, 1.45rem);
+  font-weight: 680;
+  font-variant-numeric: tabular-nums;
+}
+
 .dashboard-content {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 1.15rem;
   align-items: start;
 }
+
+.dashboard-today .dashboard-content { gap: var(--today-gap); }
 
 .dashboard .card {
   padding: clamp(1rem, 2.1vw, 1.55rem);
@@ -277,7 +308,7 @@ a:focus-visible {
 }
 .dashboard-update button:focus-visible { outline: 2px solid var(--dashboard-accent); outline-offset: 3px; }
 
-@media (min-width: 47rem) {
+@media (min-width: 42rem) {
   .dashboard-content:has(.weather-card) { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
 }
 
@@ -317,6 +348,7 @@ a:focus-visible {
   .dashboard-links { display: none; }
   .dashboard-navigation[data-mobile-menu-open] .dashboard-links { display: grid; }
   .dashboard-main { padding: 1rem; }
+  .dashboard-today { padding-block-start: .75rem; }
   .agenda .card-header { column-gap: .5rem; row-gap: 0; margin-bottom: .65rem; }
   .dashboard-card-icon { width: 2.1rem; height: 2.1rem; }
   .agenda-link { gap: .25rem; padding-inline: .2rem; font-size: .8rem; }
@@ -592,7 +624,7 @@ a:focus-visible {
 .task-check input:checked + .task-summary { text-decoration: none; }
 .task-check input:checked + .task-summary .task-title { text-decoration: line-through; }
 
-.dashboard-task-grid { display: grid; gap: 1.15rem; margin-top: 1.15rem; align-items: start; }
+.dashboard-task-grid { display: grid; gap: var(--today-gap); margin-top: var(--today-gap); align-items: start; }
 .task-overview h2 a { display: inline-flex; align-items: center; gap: .45rem; min-height: 44px; }
 .task-overview h2 a svg { flex: none; color: var(--dashboard-accent); }
 .task-overview h2 a:hover { color: var(--dashboard-accent); }
@@ -600,7 +632,7 @@ a:focus-visible {
 .task-overview-list li { padding: .65rem .8rem; border-radius: .75rem; background: #f5f6fa; overflow-wrap: anywhere; }
 .task-overview > .agenda-message { padding: .8rem; background: #f5f6fa; }
 
-@media (min-width: 47rem) {
+@media (min-width: 42rem) {
   .dashboard-task-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -725,7 +757,7 @@ a:focus-visible {
   border-radius: .65rem;
 }
 .meal-dish-input button { background: #eeebff; color: var(--dashboard-accent); }
-.today-menu { margin-top: 1.15rem; }
+.today-menu { margin-top: var(--today-gap); }
 .today-menu .card-header { flex-wrap: wrap; }
 .today-meal-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); gap: .55rem; }
 .today-meal-list li { display: grid; align-content: start; gap: .45rem; min-width: 0; padding: .65rem .8rem; border-radius: .75rem; background: #f5f6fa; }
