@@ -44,7 +44,7 @@ test('the Worker requires a valid Access session for the dashboard and API', asy
   const wrongAudience = await sign('another-app');
   const expired = await sign(audience, 1);
   const bundle = '/assets/main-Abc123_4.js';
-  for (const path of ['/', '/compra/', '/compra.webmanifest', bundle, '/api/status', '/api/weather', '/api/calendar', '/api/groceries', '/api/groceries/history', '/api/tasks']) {
+  for (const path of ['/', '/compra/', '/compra.webmanifest', '/family-board.webmanifest', bundle, '/api/status', '/api/weather', '/api/calendar', '/api/groceries', '/api/groceries/history', '/api/tasks']) {
     for (const token of [undefined, 'fake-token', wrongAudience, expired]) {
       const response = await worker.fetch(request(path, token), env);
       assert.equal(response.status, 403);
