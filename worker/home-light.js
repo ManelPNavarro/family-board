@@ -34,7 +34,10 @@ async function requestTuya(config, path, { method = 'GET', body, token } = {}) {
   });
   const data = await response.json();
   if (!response.ok || data?.success !== true) {
-    throw Object.assign(new Error('Tuya request failed.'), { code: Number(data?.code) });
+    throw Object.assign(new Error('Tuya request failed.'), {
+      code: Number(data?.code),
+      stage: path.startsWith('/v1.0/token?') ? 'token' : 'device',
+    });
   }
   return data.result;
 }
@@ -93,8 +96,13 @@ export async function homeLight(request, rawConfig, headers) {
 
     const status = await deviceRequest(config, rawConfig, 'status');
     const on = Array.isArray(status) ? status.find((entry) => entry?.code === config.switchCode)?.value : null;
-    return typeof on === 'boolean' ? result({ configured: true, on }) : result({ error: 'unavailable' }, 502);
-  } catch {
-    return result({ error: 'unavailable' }, 502);
+    return typeof on === 'boolean'
+      ? result({ configured: true, on })
+      : result({ error: 'power_status_missing' }, 502);
+  } catch (error) {
+    return result({
+      error: 'unavailable',
+      ...(Number.isSafeInteger(error.code) && { providerCode: error.code, stage: error.stage }),
+    }, 502);
   }
 }
