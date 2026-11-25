@@ -73,6 +73,7 @@ export function HomeControls() {
         <div className="home-device-actions">
           {light?.configured && (
             <button type="button" className="home-device-power" disabled={busy} onClick={() => void updateLight(!light.on)}>
+              <Power size={17} aria-hidden="true" />
               {light.on ? 'Apaga' : 'Encén'}
             </button>
           )}
