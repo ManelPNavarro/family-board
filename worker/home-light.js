@@ -8,6 +8,7 @@ function hex(buffer) {
 }
 
 async function requestTuya(config, path, { method = 'GET', body, token } = {}) {
+  const stage = token ? 'device' : 'token';
   const payload = body === undefined ? '' : JSON.stringify(body);
   const digest = hex(await crypto.subtle.digest('SHA-256', encoder.encode(payload)));
   const time = String(Date.now());
@@ -31,12 +32,16 @@ async function requestTuya(config, path, { method = 'GET', body, token } = {}) {
       ...(body !== undefined && { 'Content-Type': 'application/json' }),
     },
     body: body === undefined ? undefined : payload,
+  }).catch(() => {
+    throw Object.assign(new Error('Tuya connection failed.'), { stage, reason: 'connection' });
   });
-  const data = await response.json();
+  const data = await response.json().catch(() => {
+    throw Object.assign(new Error('Invalid Tuya response.'), { stage, upstreamStatus: response.status });
+  });
   if (!response.ok || data?.success !== true) {
     throw Object.assign(new Error('Tuya request failed.'), {
       code: Number(data?.code),
-      stage: path.startsWith('/v1.0/token?') ? 'token' : 'device',
+      stage,
     });
   }
   return data.result;
@@ -45,7 +50,9 @@ async function requestTuya(config, path, { method = 'GET', body, token } = {}) {
 async function getToken(config, rawConfig) {
   if (cachedToken?.config === rawConfig && cachedToken.expiresAt > Date.now()) return cachedToken.value;
   const result = await requestTuya(config, '/v1.0/token?grant_type=1');
-  if (typeof result?.access_token !== 'string' || !result.access_token) throw new Error('Missing Tuya token.');
+  if (typeof result?.access_token !== 'string' || !result.access_token) {
+    throw Object.assign(new Error('Missing Tuya token.'), { stage: 'token', reason: 'token_missing' });
+  }
   cachedToken = {
     config: rawConfig,
     value: result.access_token,
@@ -77,8 +84,14 @@ export async function homeLight(request, rawConfig, headers) {
   }
   if (!rawConfig) return method === 'GET' ? result({ configured: false }) : result({ error: 'not_configured' }, 503);
 
+  let config;
   try {
-    const config = parseTuyaLight(rawConfig);
+    config = parseTuyaLight(rawConfig);
+  } catch {
+    return result({ error: 'invalid_configuration' }, 502);
+  }
+
+  try {
     if (method === 'PUT') {
       if (request.headers.get('Content-Type')?.split(';')[0].trim() !== 'application/json') {
         return result({ error: 'invalid_light_state' }, 415);
@@ -102,7 +115,10 @@ export async function homeLight(request, rawConfig, headers) {
   } catch (error) {
     return result({
       error: 'unavailable',
-      ...(Number.isSafeInteger(error.code) && { providerCode: error.code, stage: error.stage }),
+      stage: error.stage ?? 'request',
+      reason: error.reason,
+      upstreamStatus: error.upstreamStatus,
+      ...(Number.isSafeInteger(error.code) && { providerCode: error.code }),
     }, 502);
   }
 }
