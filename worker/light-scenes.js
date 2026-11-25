@@ -1,5 +1,5 @@
 const presets = [
-  { id: 'vespre', title: 'Vespre', brightness: 35, temperature: 0.18, tone: 'Blanc càlid' },
+  { id: 'vespre', title: 'Vespre', brightness: 60, temperature: 0.18, tone: 'Blanc càlid' },
   { id: 'llegir', title: 'Llegir', brightness: 80, temperature: 0.5, tone: 'Blanc neutre' },
   { id: 'peli', title: 'Peli', brightness: 10, temperature: 0, tone: 'Blanc molt càlid' },
   { id: 'cita', title: 'Cita', brightness: 20, temperature: 0, tone: 'Blanc molt càlid', amber: true },
