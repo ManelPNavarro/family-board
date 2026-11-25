@@ -126,10 +126,19 @@ export function HomeControls() {
       if (accepted && state.on !== (change.on ?? true)) setMessage('Ordre enviada. Actualitza l’estat per comprovar el canvi.');
       else if (accepted && change.scene) setMessage('Escena enviada a la bombeta.');
     } catch (error) {
-      setLight(null);
-      if (error.message === 'session') setMessage(sessionMessage);
-      else if (accepted) setMessage('Ordre enviada. No s’ha pogut confirmar el canvi.');
-      else setMessage(change ? 'No s’ha pogut confirmar l’ordre. Actualitza l’estat.' : 'No s’ha pogut consultar la bombeta.');
+      let statusError = error;
+      if (change && !accepted && error.message !== 'session') {
+        try {
+          setLight(await api(path));
+          setMessage(change.scene ? 'No s’ha pogut aplicar l’escena. Torna-ho a provar.' : 'No s’ha pogut aplicar el canvi. Torna-ho a provar.');
+          return;
+        } catch (failure) {
+          statusError = failure;
+        }
+      }
+      setLight((previous) => previous?.configured ? { configured: true } : previous);
+      if (statusError.message === 'session') setMessage(sessionMessage);
+      else setMessage(accepted ? 'Ordre enviada. No s’ha pogut confirmar el canvi.' : 'No s’ha pogut consultar la bombeta.');
     } finally {
       setBusy(false);
     }
@@ -151,7 +160,8 @@ export function HomeControls() {
         {message && <p className="agenda-message" role="status">{message}</p>}
         <div className="home-device-actions">
           {light?.configured && (
-            <button type="button" className="home-device-power" disabled={busy} onClick={() => void updateLight({ on: !light.on })}>
+            <button type="button" className="home-device-power" disabled={busy || powerState === 'unknown'}
+              onClick={() => void updateLight({ on: !light.on })}>
               <Power size={17} aria-hidden="true" />
               {light.on ? 'Apaga' : 'Encén'}
             </button>

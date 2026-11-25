@@ -133,11 +133,15 @@ export async function homeLight(request, rawConfig, headers) {
         if (typeof body.on !== 'boolean') return result({ error: 'invalid_light_state' }, 400);
         commands = [{ code: config.switchCode, value: body.on }];
       }
-      const accepted = await deviceRequest(config, rawConfig, 'commands', {
-        method: 'POST',
-        body: { commands },
-      });
-      return accepted === true ? result({ accepted: true }, 202) : result({ error: 'unavailable' }, 502);
+      // Some bulbs reject commands sent together. Apply each step in order.
+      for (const command of commands) {
+        const accepted = await deviceRequest(config, rawConfig, 'commands', {
+          method: 'POST',
+          body: { commands: [command] },
+        });
+        if (accepted !== true) return result({ error: 'command_rejected', command: command.code }, 502);
+      }
+      return result({ accepted: true }, 202);
     }
 
     const status = await deviceRequest(config, rawConfig, 'status');

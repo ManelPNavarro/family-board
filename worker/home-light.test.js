@@ -45,7 +45,8 @@ test('the home control signs Tuya calls and only accepts the configured light an
       assert.equal(method, 'POST');
       const { commands } = JSON.parse(body);
       commandBatches.push(commands);
-      lightOn = commands[0].value;
+      if (commands.length > 1) return Response.json({ success: true, result: false });
+      if (commands[0].code === 'switch_led') lightOn = commands[0].value;
       return Response.json({ success: true, result: true });
     }
     if (route === path + '/functions') {
@@ -85,11 +86,9 @@ test('the home control signs Tuya calls and only accepts the configured light an
   assert.equal((await homeLight(applyScene('cita'), config, {})).status, 202);
   assert.deepEqual(commandBatches, [
     [{ code: 'switch_led', value: true }],
-    [
-      { code: 'switch_led', value: true },
-      { code: 'work_mode', value: 'colour' },
-      { code: 'colour_data_v2', value: { h: 38, s: 800, v: 200 } },
-    ],
+    [{ code: 'switch_led', value: true }],
+    [{ code: 'work_mode', value: 'colour' }],
+    [{ code: 'colour_data_v2', value: { h: 38, s: 800, v: 200 } }],
   ]);
 });
 
