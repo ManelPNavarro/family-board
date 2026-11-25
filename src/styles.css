@@ -188,6 +188,24 @@ a:focus-visible {
 
 .dashboard .card h2 { font-size: clamp(1.125rem, 1.8vw, 1.4rem); letter-spacing: -.025em; }
 .dashboard-card-icon { background: #eeebff; color: var(--dashboard-accent); }
+.home-device { max-width: 36rem; }
+.home-device-state { font-weight: 650; }
+.home-device-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .85rem; }
+.home-device-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  min-height: 44px;
+  padding-inline: .8rem;
+  border-radius: .65rem;
+  background: #eeebff;
+  color: var(--dashboard-accent);
+  font-weight: 650;
+}
+.home-device-actions .home-device-power { background: var(--dashboard-accent); color: #fff; }
+.home-device-actions button:enabled { cursor: pointer; }
+.home-device-actions button:disabled { opacity: .62; }
+.home-device-actions button:focus-visible { outline: 2px solid var(--dashboard-accent); outline-offset: 3px; }
 .agenda .card-header { flex-wrap: wrap; }
 
 .agenda-link {

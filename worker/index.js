@@ -1,6 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { getFamilyCalendar } from './calendar.js';
 import { groceries } from './groceries.js';
+import { homeLight } from './home-light.js';
 import { meals } from './meals.js';
 import { tasks } from './tasks.js';
 import { getWeather } from './weather.js';
@@ -55,6 +56,7 @@ export default {
     }
     if (pathname === '/api/meals') return meals(request, env.DB, headers);
     if (pathname === '/api/workouts') return workouts(request, env.DB, headers);
+    if (pathname === '/api/home/light') return homeLight(request, env.TUYA_LIGHT, headers);
 
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       return new Response(null, {

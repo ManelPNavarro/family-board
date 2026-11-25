@@ -1,4 +1,5 @@
 import { parseWeatherLocation } from '../shared/weather-location.js';
+import { parseTuyaLight } from '../shared/tuya-light.js';
 
 const calendarId = process.env.GOOGLE_CALENDAR_ID?.trim();
 const rawCredentials = process.env.GOOGLE_CALENDAR_SERVICE_ACCOUNT;
@@ -31,6 +32,15 @@ if (weatherLocation) {
     secrets.WEATHER_LOCATION = JSON.stringify(parseWeatherLocation(weatherLocation));
   } catch {
     throw new Error('WEATHER_LOCATION must be a JSON object with valid name, latitude, and longitude fields.');
+  }
+}
+
+if (process.env.TUYA_LIGHT) {
+  try {
+    const { endpoint, ...settings } = parseTuyaLight(process.env.TUYA_LIGHT);
+    secrets.TUYA_LIGHT = JSON.stringify(settings);
+  } catch {
+    throw new Error('TUYA_LIGHT must contain a valid Tuya light configuration.');
   }
 }
 

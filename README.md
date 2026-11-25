@@ -111,3 +111,34 @@ workflow on `main` to apply the setting.
 
 The Worker caches the forecast for 15 minutes. The precipitation percentage
 is the highest hourly probability forecast for the day.
+
+## Smart Life light
+
+The Casa page can control one light through Tuya's cloud API.
+
+1. Create a [Tuya Smart Home cloud project](https://developer.tuya.com/en/docs/developer/apply-cloud-api-key?id=Kff30z8sv62ah)
+   in the data center that serves your Smart Life account. Authorize the
+   required cloud services and link the account by scanning the project QR
+   code in the Smart Life app.
+2. Find the light's Device ID in **Devices → All Devices**. In Tuya's API
+   Explorer, check that the device status includes a boolean power code and
+   that the same code is listed in the device's instruction set.
+3. Create the repository's **GitHub Actions secret** `TUYA_LIGHT` with this
+   shape, substituting the actual credentials and device ID:
+
+   ```json
+   {
+     "region": "western-eu",
+     "clientId": "TUYA_ACCESS_ID",
+     "clientSecret": "TUYA_ACCESS_SECRET",
+     "deviceId": "LIGHT_DEVICE_ID"
+   }
+   ```
+
+   Use `central-eu` for Central Europe or `western-eu` for Western Europe.
+   Add `"switchCode": "<power code>"` only if the device uses a code other
+   than `switch_led`. Keep these values out of the repository.
+4. Run **Family Board** on `main` and open `/#casa`. The Worker only allows
+   commands for the configured device. Everyone authorized by the existing
+   Cloudflare Access policy can use the controls. Requests still depend on
+   the Tuya cloud project and its active API subscription or trial.

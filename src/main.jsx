@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CalendarDays, Dumbbell, House, ListChecks, Menu, RefreshCw, ShoppingBasket, Utensils, X } from 'lucide-react';
+import { CalendarDays, Dumbbell, House, Lightbulb, ListChecks, Menu, RefreshCw, ShoppingBasket, Utensils, X } from 'lucide-react';
 import { dayKey, timeZone } from '../shared/dates.js';
 import { Agenda } from './agenda.jsx';
 import { Alerts } from './alerts.jsx';
 import { GroceryList } from './groceries.jsx';
+import { HomeControls } from './home-controls.jsx';
 import { Meals, TodayMenu } from './meals.jsx';
 import { Tasks, TaskOverview } from './tasks.jsx';
 import { Weather, useWeather } from './weather.jsx';
@@ -31,6 +32,7 @@ const pages = [
   { id: 'tasques', label: 'Tasques', icon: ListChecks },
   { id: 'menu', label: 'Menú', icon: Utensils },
   { id: 'entrenaments', label: 'Entrenaments', icon: Dumbbell },
+  { id: 'casa', label: 'Casa', icon: Lightbulb },
 ];
 const navigationPreference = 'family-board:hide-navigation';
 
@@ -221,6 +223,7 @@ function App({ now, today, weather }) {
         {page === 'tasques' && <Tasks today={today} />}
         {page === 'menu' && <Meals today={today} />}
         {page === 'entrenaments' && <Workouts />}
+        {page === 'casa' && <HomeControls />}
         {(page === 'avui' || page === 'calendari') && (
           <>
             {page === 'avui' ? (
