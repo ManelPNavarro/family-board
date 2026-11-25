@@ -213,9 +213,10 @@ a:focus-visible {
 .home-device-actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: .6rem;
-  margin-top: 1rem;
-  padding-top: .85rem;
+  margin-top: 1.5rem;
+  padding-top: 1.15rem;
   border-top: 1px solid var(--dashboard-border);
 }
 .home-device-actions button {
