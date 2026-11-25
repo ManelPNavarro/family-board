@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Lightbulb, RefreshCw } from 'lucide-react';
+import { Lightbulb, LightbulbOff, Power, RefreshCw } from 'lucide-react';
 import { api } from './api.js';
 
 const path = '/api/home/light';
@@ -53,17 +53,22 @@ export function HomeControls() {
     }
   }
 
+  const powerState = light?.configured ? (light.on ? 'on' : 'off') : 'unknown';
+  const BulbIcon = powerState === 'off' ? LightbulbOff : Lightbulb;
+
   return (
     <section aria-labelledby="home-title">
       <header className="dashboard-heading grocery-heading"><h1 id="home-title">Casa</h1></header>
-      <section className="card home-device" aria-labelledby="light-title">
-        <header className="card-header">
-          <span className="dashboard-card-icon"><Lightbulb size={21} aria-hidden="true" /></span>
+      <section className="card home-device" aria-labelledby="light-title" data-power={powerState}>
+        <header className="card-header home-device-header">
+          <span className="dashboard-card-icon home-device-icon"><BulbIcon size={22} aria-hidden="true" /></span>
           <h2 id="light-title">Llum sofà</h2>
+          <p className="home-device-state" role="status">
+            <Power size={15} aria-hidden="true" />
+            {powerState === 'on' ? 'Encesa' : powerState === 'off' ? 'Apagada' : 'Estat desconegut'}
+          </p>
         </header>
-        <p className="home-device-state" role="status">
-          {light?.configured ? (light.on ? 'Encesa' : 'Apagada') : light ? 'Pendent de connectar amb Tuya.' : 'Estat desconegut'}
-        </p>
+        {light && !light.configured && <p className="agenda-message">Pendent de connectar amb Tuya.</p>}
         {message && <p className="agenda-message" role="status">{message}</p>}
         <div className="home-device-actions">
           {light?.configured && (
