@@ -25,32 +25,31 @@ function TaskDate({ date }) {
 export function TaskOverview({ today }) {
   const { tasks, message } = useTasks();
   const periods = taskPeriods(tasks ?? [], today);
+  const sections = [
+    { id: 'today', title: 'Tasques avui' },
+    { id: 'week', title: 'Tasques setmana' },
+  ].filter(({ id }) => periods[id].length);
+  if (message || !sections.length) return null;
 
   return (
     <div className="dashboard-task-grid">
-      {[
-        { id: 'today', title: 'Tasques avui', empty: 'No hi ha tasques pendents per avui.' },
-        { id: 'week', title: 'Tasques setmana', empty: 'No hi ha tasques pendents aquesta setmana.' },
-      ].map(({ id, title, empty }) => (
+      {sections.map(({ id, title }) => (
         <section className="card task-overview" key={id} aria-labelledby={`task-overview-${id}`}>
           <header className="card-header">
             <span className="dashboard-card-icon"><ListChecks size={21} aria-hidden="true" /></span>
             <h2 id={`task-overview-${id}`}><a href="#tasques">{title} <ArrowRight size={16} aria-hidden="true" /></a></h2>
           </header>
-          {message ? <p className="agenda-message" role="status">{messages[message]}</p> :
-            periods[id].length === 0 ? <p className="agenda-message">{empty}</p> : (
-              <ul className="task-overview-list">
-                {periods[id].map((task) => (
-                  <li key={task.id}>
-                    <strong>{task.title}</strong>
-                    <div className="task-details">
-                      <TaskPriority priority={task.priority} />
-                      {id === 'week' && <span className="task-due"><TaskDate date={task.dueDate} /></span>}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+          <ul className="task-overview-list">
+            {periods[id].map((task) => (
+              <li key={task.id}>
+                <strong>{task.title}</strong>
+                <div className="task-details">
+                  <TaskPriority priority={task.priority} />
+                  {id === 'week' && <span className="task-due"><TaskDate date={task.dueDate} /></span>}
+                </div>
+              </li>
+            ))}
+          </ul>
         </section>
       ))}
     </div>

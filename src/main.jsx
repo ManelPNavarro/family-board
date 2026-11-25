@@ -5,7 +5,7 @@ import { dayKey, timeZone } from '../shared/dates.js';
 import { Agenda } from './agenda.jsx';
 import { Alerts } from './alerts.jsx';
 import { GroceryList } from './groceries.jsx';
-import { HomeControls } from './home-controls.jsx';
+import { HomeControls, HomeOverview } from './home-controls.jsx';
 import { Meals, TodayMenu } from './meals.jsx';
 import { Tasks, TaskOverview } from './tasks.jsx';
 import { Weather, useWeather } from './weather.jsx';
@@ -248,6 +248,7 @@ function App({ now, today, weather }) {
             {page === 'avui' && <>
               <TodayMenu today={today} />
               <TaskOverview today={today} />
+              <HomeOverview />
             </>}
           </>
         )}

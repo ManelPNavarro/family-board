@@ -71,6 +71,7 @@ export function Agenda({ today, week }) {
   }, [today]);
 
   const days = calendar.days?.filter((day) => week || day.date === today) ?? [];
+  if (!week && (calendar.status !== 'ready' || !days.some(({ events }) => events.length))) return null;
 
   return (
     <section className="card agenda" aria-labelledby="agenda">

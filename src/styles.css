@@ -209,7 +209,19 @@ a:focus-visible {
 }
 .home-device[data-power="on"] .home-device-icon { background: #fff0cc; color: #91430b; }
 .home-device[data-power="on"] .home-device-icon svg { fill: #ffc451; }
-.home-device[data-power="on"] .home-device-state { color: #91430b; }
+.home-device-state[data-power="on"] { color: #91430b; }
+.home-overview { margin-top: var(--today-gap); }
+.home-overview .card-header { flex-wrap: wrap; }
+.home-overview-devices { display: grid; gap: .4rem; }
+.home-overview-devices li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .4rem .75rem;
+  padding: .65rem .8rem;
+  border-radius: .75rem;
+  background: #f5f6fa;
+}
 .home-device-actions {
   display: flex;
   flex-wrap: wrap;
@@ -357,8 +369,8 @@ a:focus-visible {
 .dashboard-update button:focus-visible { outline: 2px solid var(--dashboard-accent); outline-offset: 3px; }
 
 @container today (min-width: 38rem) {
-  .dashboard-content:has(.weather-card) { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
-  .dashboard-task-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboard-content:has(.weather-card):has(.agenda) { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
+  .dashboard-task-grid:has(> :nth-child(2)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (width > 32rem) {
@@ -667,7 +679,6 @@ a:focus-visible {
 .task-overview h2 a:hover { color: var(--dashboard-accent); }
 .task-overview-list { display: grid; gap: .4rem; }
 .task-overview-list li { padding: .65rem .8rem; border-radius: .75rem; background: #f5f6fa; overflow-wrap: anywhere; }
-.task-overview > .agenda-message { padding: .8rem; background: #f5f6fa; }
 
 .task-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; align-items: start; }
 .task-form label { display: grid; gap: .3rem; font-weight: 650; }
