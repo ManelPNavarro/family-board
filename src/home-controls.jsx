@@ -64,7 +64,6 @@ export function HomeControls() {
           <span className="dashboard-card-icon home-device-icon"><BulbIcon size={22} aria-hidden="true" /></span>
           <h2 id="light-title">Llum sofà</h2>
           <p className="home-device-state" role="status">
-            <Power size={15} aria-hidden="true" />
             {powerState === 'on' ? 'Encesa' : powerState === 'off' ? 'Apagada' : 'Estat desconegut'}
           </p>
         </header>
