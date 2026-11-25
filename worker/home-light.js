@@ -67,7 +67,9 @@ async function getToken(config, rawConfig) {
 }
 
 async function deviceRequest(config, rawConfig, action, options) {
-  const path = `/v1.0/iot-03/devices/${config.deviceId}/${action}`;
+  const path = action
+    ? `/v1.0/iot-03/devices/${config.deviceId}/${action}`
+    : `/v1.1/iot-03/devices/${config.deviceId}`;
   const token = await getToken(config, rawConfig);
   try {
     return await requestTuya(config, path, { ...options, token });
@@ -76,6 +78,11 @@ async function deviceRequest(config, rawConfig, action, options) {
     if (cachedToken?.config === rawConfig && cachedToken.value === token) cachedToken = undefined;
     return requestTuya(config, path, { ...options, token: await getToken(config, rawConfig) });
   }
+}
+
+async function deviceOnline(config, rawConfig) {
+  const info = await deviceRequest(config, rawConfig, null).catch(() => null);
+  return info?.online ?? info?.result?.online;
 }
 
 async function getScenes(config, rawConfig) {
@@ -143,6 +150,7 @@ export async function homeLight(request, rawConfig, headers) {
         if (typeof body.on !== 'boolean') return result({ error: 'invalid_light_state' }, 400);
         commands = [{ code: config.switchCode, value: body.on }];
       }
+      if (await deviceOnline(config, rawConfig) === false) return result({ error: 'device_offline' }, 409);
       // Some bulbs reject commands sent together. Apply each step in order.
       const initialStatus = sceneRequest ? await deviceRequest(config, rawConfig, 'status') : null;
       for (const command of commands) {
@@ -152,6 +160,7 @@ export async function homeLight(request, rawConfig, headers) {
           body: { commands: [command] },
         });
         if (accepted !== true) {
+          if (await deviceOnline(config, rawConfig) === false) return result({ error: 'device_offline' }, 409);
           const status = await deviceRequest(config, rawConfig, 'status');
           if (!matchesCommand(status, command)) return result({ error: 'command_rejected', command: command.code }, 502);
         }
@@ -159,6 +168,7 @@ export async function homeLight(request, rawConfig, headers) {
       return result({ accepted: true }, 202);
     }
 
+    if (await deviceOnline(config, rawConfig) === false) return result({ configured: true, online: false });
     const status = await deviceRequest(config, rawConfig, 'status');
     const on = Array.isArray(status) ? status.find((entry) => entry?.code === config.switchCode)?.value : null;
     return typeof on === 'boolean'

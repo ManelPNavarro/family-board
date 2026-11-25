@@ -17,10 +17,12 @@ test('the home control signs Tuya calls and only accepts the configured light an
     clientId: 'fake-id', clientSecret: 'fake-key', region: 'western-eu', deviceId: 'test-lamp',
   });
   const path = '/v1.0/iot-03/devices/test-lamp';
+  const infoPath = '/v1.1/iot-03/devices/test-lamp';
   const calls = [];
   const commandBatches = [];
   let lightOn = false;
   let expireToken = false;
+  let online = true;
   t.mock.method(globalThis, 'fetch', async (url, { method, headers, body, redirect }) => {
     const { origin: endpoint, pathname, search } = new URL(url);
     assert.equal(endpoint, 'https://openapi-weaz.tuyaeu.com');
@@ -37,10 +39,11 @@ test('the home control signs Tuya calls and only accepts the configured light an
       return Response.json({ success: true, result: { access_token: 'fake-token', expire_time: 7200 } });
     }
     assert.equal(headers.access_token, 'fake-token');
-    if (expireToken) {
+    if (expireToken && route === path + '/commands') {
       expireToken = false;
       return Response.json({ success: false, code: 1010 });
     }
+    if (route === infoPath) return Response.json({ success: true, result: { result: { online } } });
     if (route === path + '/commands') {
       assert.equal(method, 'POST');
       const { commands } = JSON.parse(body);
@@ -73,8 +76,8 @@ test('the home control signs Tuya calls and only accepts the configured light an
   assert.equal((await homeLight(setPower({ on: true }), config, {})).status, 202);
   assert.deepEqual(await (await homeLight(request(), config, {})).json(), { configured: true, on: true });
   assert.deepEqual(calls, [
-    '/v1.0/token?grant_type=1', path + '/status', path + '/commands',
-    '/v1.0/token?grant_type=1', path + '/commands', path + '/status',
+    '/v1.0/token?grant_type=1', infoPath, path + '/status', infoPath, path + '/commands',
+    '/v1.0/token?grant_type=1', path + '/commands', infoPath, path + '/status',
   ]);
   const sceneEndpoint = origin + '/api/home/light/scenes';
   const list = await homeLight(new Request(sceneEndpoint), config, {});
@@ -92,6 +95,11 @@ test('the home control signs Tuya calls and only accepts the configured light an
     [{ code: 'work_mode', value: 'colour' }],
     [{ code: 'colour_data_v2', value: { h: 38, s: 800, v: 200 } }],
   ]);
+  online = false;
+  assert.deepEqual(await (await homeLight(request(), config, {})).json(), { configured: true, online: false });
+  assert.equal((await homeLight(applyScene('cita'), config, {})).status, 409);
+  assert.equal((await homeLight(setPower({ on: false }), config, {})).status, 409);
+  assert.equal(commandBatches.length, 3);
 });
 
 test('warm white fallback uses the supported range, including legacy dimmers', () => {

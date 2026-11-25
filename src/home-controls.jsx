@@ -8,14 +8,17 @@ const sessionMessage = 'Actualitza la pàgina per renovar la sessió.';
 const lightTitle = 'Llum sofà';
 
 function getPowerState(light) {
+  if (light?.online === false) return 'offline';
   if (typeof light?.on !== 'boolean') return 'unknown';
   return light.on ? 'on' : 'off';
 }
 
+const powerLabels = { on: 'Encesa', off: 'Apagada', offline: 'Sense connexió', unknown: 'Estat desconegut' };
+
 function LightStatus({ power }) {
   return (
     <p className="home-device-state" data-power={power} role="status">
-      {power === 'on' ? 'Encesa' : power === 'off' ? 'Apagada' : 'Estat desconegut'}
+      {powerLabels[power]}
     </p>
   );
 }
@@ -129,8 +132,11 @@ export function HomeControls() {
       let statusError = error;
       if (change && !accepted && error.message !== 'session') {
         try {
-          setLight(await api(path));
-          setMessage(change.scene ? 'No s’ha pogut aplicar l’escena. Torna-ho a provar.' : 'No s’ha pogut aplicar el canvi. Torna-ho a provar.');
+          const refreshed = await api(path);
+          setLight(refreshed);
+          if (refreshed.online !== false) {
+            setMessage(change.scene ? 'No s’ha pogut aplicar l’escena. Torna-ho a provar.' : 'No s’ha pogut aplicar el canvi. Torna-ho a provar.');
+          }
           return;
         } catch (failure) {
           statusError = failure;
@@ -160,7 +166,7 @@ export function HomeControls() {
         {message && <p className="agenda-message" role="status">{message}</p>}
         <div className="home-device-actions">
           {light?.configured && (
-            <button type="button" className="home-device-power" disabled={busy || powerState === 'unknown'}
+            <button type="button" className="home-device-power" disabled={busy || typeof light.on !== 'boolean'}
               onClick={() => void updateLight({ on: !light.on })}>
               <Power size={17} aria-hidden="true" />
               {light.on ? 'Apaga' : 'Encén'}
@@ -181,7 +187,7 @@ export function HomeControls() {
           {scenes?.length ? (
             <div className="home-scene-grid">
               {scenes.map(({ id, title, detail }) => (
-                <button type="button" key={id} disabled={busy} onClick={() => void updateLight({ scene: id })}>
+                <button type="button" key={id} disabled={busy || powerState === 'offline'} onClick={() => void updateLight({ scene: id })}>
                   <strong>{title}</strong>
                   <span>{detail}</span>
                 </button>
