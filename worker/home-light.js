@@ -1,7 +1,9 @@
 import { parseTuyaLight } from '../shared/tuya-light.js';
+import { lightScenes } from './light-scenes.js';
 
 const encoder = new TextEncoder();
 let cachedToken;
+let cachedScenes;
 
 function hex(buffer) {
   return Array.from(new Uint8Array(buffer), (byte) => byte.toString(16).padStart(2, '0')).join('');
@@ -76,16 +78,29 @@ async function deviceRequest(config, rawConfig, action, options) {
   }
 }
 
+async function getScenes(config, rawConfig) {
+  if (cachedScenes?.config === rawConfig && cachedScenes.expiresAt > Date.now()) return cachedScenes.scenes;
+  const result = await deviceRequest(config, rawConfig, 'functions');
+  const scenes = lightScenes(result?.functions, config.switchCode);
+  cachedScenes = { config: rawConfig, scenes, expiresAt: Date.now() + 5 * 60_000 };
+  return scenes;
+}
+
 export async function homeLight(request, rawConfig, headers) {
   const result = (body, status = 200) => Response.json(body, { status, headers });
   const { method } = request;
+  const url = new URL(request.url);
+  const sceneRequest = url.pathname === '/api/home/light/scenes';
   if (method !== 'GET' && method !== 'PUT') {
     return new Response(null, { status: 405, headers: { ...headers, Allow: 'GET, PUT' } });
   }
-  if (method === 'PUT' && request.headers.get('Origin') !== new URL(request.url).origin) {
+  if (method === 'PUT' && request.headers.get('Origin') !== url.origin) {
     return result({ error: 'forbidden' }, 403);
   }
-  if (!rawConfig) return method === 'GET' ? result({ configured: false }) : result({ error: 'not_configured' }, 503);
+  if (!rawConfig) {
+    if (method === 'PUT') return result({ error: 'not_configured' }, 503);
+    return result(sceneRequest ? { scenes: [] } : { configured: false });
+  }
 
   let config;
   try {
@@ -95,17 +110,32 @@ export async function homeLight(request, rawConfig, headers) {
   }
 
   try {
+    if (method === 'GET' && sceneRequest) {
+      const scenes = await getScenes(config, rawConfig);
+      return result({ scenes: scenes.map(({ id, title, detail }) => ({ id, title, detail })) });
+    }
+
     if (method === 'PUT') {
       if (request.headers.get('Content-Type')?.split(';')[0].trim() !== 'application/json') {
         return result({ error: 'invalid_light_state' }, 415);
       }
       const body = await request.json().catch(() => null);
-      if (typeof body?.on !== 'boolean' || Object.keys(body).length !== 1) {
+      if (!body || Object.keys(body).length !== 1) {
         return result({ error: 'invalid_light_state' }, 400);
+      }
+      let commands;
+      if (sceneRequest) {
+        if (typeof body.scene !== 'string') return result({ error: 'invalid_scene' }, 400);
+        const scene = (await getScenes(config, rawConfig)).find(({ id }) => id === body.scene);
+        if (!scene) return result({ error: 'scene_unavailable' }, 422);
+        commands = scene.commands;
+      } else {
+        if (typeof body.on !== 'boolean') return result({ error: 'invalid_light_state' }, 400);
+        commands = [{ code: config.switchCode, value: body.on }];
       }
       const accepted = await deviceRequest(config, rawConfig, 'commands', {
         method: 'POST',
-        body: { commands: [{ code: config.switchCode, value: body.on }] },
+        body: { commands },
       });
       return accepted === true ? result({ accepted: true }, 202) : result({ error: 'unavailable' }, 502);
     }

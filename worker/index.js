@@ -56,7 +56,9 @@ export default {
     }
     if (pathname === '/api/meals') return meals(request, env.DB, headers);
     if (pathname === '/api/workouts') return workouts(request, env.DB, headers);
-    if (pathname === '/api/home/light') return homeLight(request, env.TUYA_LIGHT, headers);
+    if (pathname === '/api/home/light' || pathname === '/api/home/light/scenes') {
+      return homeLight(request, env.TUYA_LIGHT, headers);
+    }
 
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       return new Response(null, {
