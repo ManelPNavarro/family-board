@@ -59,7 +59,7 @@ export function HomeControls() {
       <section className="card home-device" aria-labelledby="light-title">
         <header className="card-header">
           <span className="dashboard-card-icon"><Lightbulb size={21} aria-hidden="true" /></span>
-          <h2 id="light-title">Bombeta Smart Life</h2>
+          <h2 id="light-title">Llum sofà</h2>
         </header>
         <p className="home-device-state" role="status">
           {light?.configured ? (light.on ? 'Encesa' : 'Apagada') : light ? 'Pendent de connectar amb Tuya.' : 'Estat desconegut'}
