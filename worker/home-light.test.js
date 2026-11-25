@@ -93,7 +93,7 @@ test('the home control signs Tuya calls and only accepts the configured light an
   assert.deepEqual(commandBatches, [
     [{ code: 'switch_led', value: true }],
     [{ code: 'work_mode', value: 'colour' }],
-    [{ code: 'colour_data_v2', value: { h: 38, s: 800, v: 200 } }],
+    [{ code: 'colour_data_v2', value: { h: 44, s: 450, v: 300 } }],
   ]);
   online = false;
   assert.deepEqual(await (await homeLight(request(), config, {})).json(), { configured: true, online: false });
@@ -111,7 +111,7 @@ test('warm white fallback uses the supported range, including legacy dimmers', (
   assert.deepEqual(scenes.find(({ id }) => id === 'cita').commands, [
     { code: 'switch_led', value: true },
     { code: 'temp_value', value: 0 },
-    { code: 'bright_value', value: 50 },
+    { code: 'bright_value', value: 75 },
   ]);
   assert.equal(scenes.find(({ id }) => id === 'peli').commands.at(-1).value, 25);
 });

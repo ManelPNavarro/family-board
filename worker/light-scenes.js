@@ -2,7 +2,7 @@ const presets = [
   { id: 'vespre', title: 'Vespre', brightness: 60, temperature: 0.18, tone: 'Blanc càlid' },
   { id: 'llegir', title: 'Llegir', brightness: 80, temperature: 0.5, tone: 'Blanc neutre' },
   { id: 'peli', title: 'Peli', brightness: 10, temperature: 0, tone: 'Blanc molt càlid' },
-  { id: 'cita', title: 'Cita', brightness: 20, temperature: 0, tone: 'Blanc molt càlid', amber: true },
+  { id: 'cita', title: 'Cita', brightness: 30, temperature: 0, tone: 'Blanc molt càlid', amber: true },
 ];
 
 function readValues(entry) {
@@ -48,11 +48,11 @@ export function lightScenes(functions, switchCode) {
     if (amber && color && colorMode) {
       const scale = color === 'colour_data_v2' ? 1000 : 255;
       return [{
-        id, title, detail: `Ambre · ${level} %`,
+        id, title, detail: `Ambre suau · ${level} %`,
         commands: [
           turnOn,
           { code: 'work_mode', value: colorMode },
-          { code: color, value: { h: 38, s: Math.round(scale * 0.8), v: Math.round(scale * level / 100) } },
+          { code: color, value: { h: 44, s: Math.round(scale * 0.45), v: Math.round(scale * level / 100) } },
         ],
       }];
     }
