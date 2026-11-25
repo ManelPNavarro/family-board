@@ -20,7 +20,7 @@ async function requestTuya(config, path, { method = 'GET', body, token } = {}) {
   const signature = hex(await crypto.subtle.sign('HMAC', signingKey, encoder.encode(signed))).toUpperCase();
   const response = await fetch(config.endpoint + path, {
     method,
-    redirect: 'error',
+    redirect: 'manual',
     signal: AbortSignal.timeout(5000),
     headers: {
       client_id: config.clientId,
@@ -35,6 +35,9 @@ async function requestTuya(config, path, { method = 'GET', body, token } = {}) {
   }).catch(() => {
     throw Object.assign(new Error('Tuya connection failed.'), { stage, reason: 'connection' });
   });
+  if (response.status >= 300 && response.status < 400) {
+    throw Object.assign(new Error('Unexpected Tuya redirect.'), { stage, upstreamStatus: response.status });
+  }
   const data = await response.json().catch(() => {
     throw Object.assign(new Error('Invalid Tuya response.'), { stage, upstreamStatus: response.status });
   });

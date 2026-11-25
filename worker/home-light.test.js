@@ -12,9 +12,10 @@ test('the home control signs Tuya calls and only accepts the configured light an
   const calls = [];
   let lightOn = false;
   let expireToken = false;
-  t.mock.method(globalThis, 'fetch', async (url, { method, headers, body }) => {
+  t.mock.method(globalThis, 'fetch', async (url, { method, headers, body, redirect }) => {
     const { origin: endpoint, pathname, search } = new URL(url);
     assert.equal(endpoint, 'https://openapi-weaz.tuyaeu.com');
+    assert.equal(redirect, 'manual');
     const route = pathname + search;
     calls.push(route);
     const digest = createHash('sha256').update(body ?? '').digest('hex');
