@@ -31,8 +31,8 @@ const pages = [
   { id: 'compra', label: 'Compra', icon: ShoppingBasket },
   { id: 'tasques', label: 'Tasques', icon: ListChecks },
   { id: 'menu', label: 'Menú', icon: Utensils },
-  { id: 'entrenaments', label: 'Entrenaments', icon: Dumbbell },
   { id: 'casa', label: 'Casa', icon: Lightbulb },
+  { id: 'entrenaments', label: 'Entrenaments', icon: Dumbbell },
 ];
 const navigationPreference = 'family-board:hide-navigation';
 
