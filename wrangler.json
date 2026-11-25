@@ -2,6 +2,7 @@
   "name": "family-board",
   "main": "worker/index.js",
   "compatibility_date": "2026-11-21",
+  "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "preview_urls": false,
   "assets": {

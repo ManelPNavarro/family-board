@@ -142,3 +142,25 @@ The Casa page can control one light through Tuya's cloud API.
    commands for the configured device. Everyone authorized by the existing
    Cloudflare Access policy can use the controls. Requests still depend on
    the Tuya cloud project and its active API subscription or trial.
+
+## Roborock status probe
+
+The protected `/api/home/roborock` endpoint checks whether the Roborock cloud
+can report the Q7 L5+ status. It returns the available battery level, online
+flag, and provider state code. The cloud response is a snapshot.
+
+1. On a Mac with Python 3.11 or newer, run these commands from the repository.
+   Enter the Roborock app email and the verification code sent by Roborock.
+
+   ```sh
+   setup_dir="$(mktemp -d)"
+   python3 -m venv "$setup_dir"
+   "$setup_dir/bin/python" -m pip install python-roborock==7.33.0
+   "$setup_dir/bin/python" scripts/roborock-session.py | pbcopy
+   ```
+
+2. Create the [GitHub Actions secret](https://github.com/ManelPNavarro/family-board/settings/secrets/actions)
+   `ROBOROCK_SESSION` and paste the clipboard contents into its value. Clear
+   the clipboard after saving. The script never needs an account password.
+3. Run **Family Board** on `main` and open `/api/home/roborock` on the
+   usual Family Board URL after signing in with Cloudflare Access.

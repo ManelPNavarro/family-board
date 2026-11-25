@@ -3,6 +3,7 @@ import { getFamilyCalendar } from './calendar.js';
 import { groceries } from './groceries.js';
 import { homeLight } from './home-light.js';
 import { meals } from './meals.js';
+import { roborockStatus } from './roborock.js';
 import { tasks } from './tasks.js';
 import { getWeather } from './weather.js';
 import { workouts } from './workouts.js';
@@ -58,6 +59,10 @@ export default {
     if (pathname === '/api/workouts') return workouts(request, env.DB, headers);
     if (pathname === '/api/home/light' || pathname === '/api/home/light/scenes') {
       return homeLight(request, env.TUYA_LIGHT, headers);
+    }
+
+    if (pathname === '/api/home/roborock') {
+      return roborockStatus(request, env.ROBOROCK_SESSION, headers);
     }
 
     if (request.method !== 'GET' && request.method !== 'HEAD') {

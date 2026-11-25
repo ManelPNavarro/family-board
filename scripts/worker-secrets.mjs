@@ -1,3 +1,4 @@
+import { parseRoborockSession } from '../shared/roborock-session.js';
 import { parseWeatherLocation } from '../shared/weather-location.js';
 import { parseTuyaLight } from '../shared/tuya-light.js';
 
@@ -41,6 +42,14 @@ if (process.env.TUYA_LIGHT) {
     secrets.TUYA_LIGHT = JSON.stringify(settings);
   } catch {
     throw new Error('TUYA_LIGHT must contain a valid Tuya light configuration.');
+  }
+}
+
+if (process.env.ROBOROCK_SESSION) {
+  try {
+    secrets.ROBOROCK_SESSION = JSON.stringify(parseRoborockSession(process.env.ROBOROCK_SESSION));
+  } catch {
+    throw new Error('ROBOROCK_SESSION must contain a valid Roborock session.');
   }
 }
 
