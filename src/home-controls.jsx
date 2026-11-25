@@ -76,8 +76,9 @@ export function HomeControls() {
               {light.on ? 'Apaga' : 'Encén'}
             </button>
           )}
-          <button type="button" disabled={busy} onClick={() => void updateLight()}>
-            <RefreshCw size={17} aria-hidden="true" /> Actualitza l’estat
+          <button type="button" className="home-device-refresh" disabled={busy}
+            aria-label="Actualitza l’estat" title="Actualitza l’estat" onClick={() => void updateLight()}>
+            <RefreshCw size={18} aria-hidden="true" />
           </button>
         </div>
       </section>

@@ -217,6 +217,7 @@ a:focus-visible {
   font-weight: 650;
 }
 .home-device-actions .home-device-power { background: var(--dashboard-accent); color: #fff; }
+.home-device-actions .home-device-refresh { justify-content: center; width: 44px; padding-inline: 0; }
 .home-device-actions button:enabled { cursor: pointer; }
 .home-device-actions button:disabled { opacity: .62; }
 .home-device-actions button:focus-visible { outline: 2px solid var(--dashboard-accent); outline-offset: 3px; }
