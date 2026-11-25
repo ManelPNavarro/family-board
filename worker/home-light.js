@@ -86,6 +86,16 @@ async function getScenes(config, rawConfig) {
   return scenes;
 }
 
+function matchesCommand(status, command) {
+  const reported = Array.isArray(status) ? status.find((entry) => entry?.code === command.code)?.value : undefined;
+  if (typeof command.value !== 'object') return reported === command.value;
+  let value = reported;
+  if (typeof value === 'string') {
+    try { value = JSON.parse(value); } catch { return false; }
+  }
+  return Object.entries(command.value).every(([key, target]) => value?.[key] === target);
+}
+
 export async function homeLight(request, rawConfig, headers) {
   const result = (body, status = 200) => Response.json(body, { status, headers });
   const { method } = request;
@@ -134,12 +144,17 @@ export async function homeLight(request, rawConfig, headers) {
         commands = [{ code: config.switchCode, value: body.on }];
       }
       // Some bulbs reject commands sent together. Apply each step in order.
+      const initialStatus = sceneRequest ? await deviceRequest(config, rawConfig, 'status') : null;
       for (const command of commands) {
+        if (matchesCommand(initialStatus, command)) continue;
         const accepted = await deviceRequest(config, rawConfig, 'commands', {
           method: 'POST',
           body: { commands: [command] },
         });
-        if (accepted !== true) return result({ error: 'command_rejected', command: command.code }, 502);
+        if (accepted !== true) {
+          const status = await deviceRequest(config, rawConfig, 'status');
+          if (!matchesCommand(status, command)) return result({ error: 'command_rejected', command: command.code }, 502);
+        }
       }
       return result({ accepted: true }, 202);
     }
