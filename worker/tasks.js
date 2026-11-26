@@ -5,42 +5,6 @@ const listPath = '/api/tasks';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const fields = 'id, title, due_date AS dueDate, priority, completed, assignee, recurrence';
 
-// The deploy token cannot reach D1's admin API. Apply this additive migration
-// through the binding until the production database has been upgraded.
-const migrationName = '0013_task_recurrence_and_assignee.sql';
-const taskColumns = {
-  "assignee": "ALTER TABLE tasks ADD COLUMN assignee TEXT CHECK (assignee IN ('manel', 'marina'))",
-  "recurrence": "ALTER TABLE tasks ADD COLUMN recurrence TEXT NOT NULL DEFAULT 'none'\n  CHECK (recurrence IN ('none', 'daily', 'weekly', 'fortnightly', 'monthly'))",
-  "recurrence_day": "ALTER TABLE tasks ADD COLUMN recurrence_day INTEGER CHECK (recurrence_day BETWEEN 1 AND 31)",
-  "revision": "ALTER TABLE tasks ADD COLUMN revision INTEGER NOT NULL DEFAULT 0"
-};
-const readyDatabases = new WeakSet();
-
-async function ensureTaskSchema(db) {
-  if (readyDatabases.has(db)) return;
-  const getColumns = async () => new Set((await db.prepare("PRAGMA table_info('tasks')").all()).results.map(({ name }) => name));
-  const columns = await getColumns();
-  const missing = Object.keys(taskColumns).filter((name) => !columns.has(name));
-  if (missing.length) {
-    try {
-      await db.batch([
-        ...missing.map((name) => db.prepare(taskColumns[name])),
-        db.prepare(`CREATE TABLE IF NOT EXISTS d1_migrations (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT UNIQUE,
-          applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
-        )`),
-        db.prepare('INSERT INTO d1_migrations (name) VALUES (?) ON CONFLICT(name) DO NOTHING').bind(migrationName),
-      ]);
-    } catch (error) {
-      // Another request may have completed the migration first.
-      const refreshed = await getColumns();
-      if (missing.some((name) => !refreshed.has(name))) throw error;
-    }
-  }
-  readyDatabases.add(db);
-}
-
 function task(row) {
   const { revision, recurrenceDay, ...data } = row;
   return { ...data, completed: row.completed === 1 };
@@ -70,7 +34,6 @@ export async function tasks(request, db, headers) {
   }
 
   try {
-    await ensureTaskSchema(db);
     if (method === 'GET' || method === 'HEAD') {
       const { results } = await db.prepare(`SELECT ${fields} FROM tasks ORDER BY rowid`).all();
       return result({ tasks: results.map(task) });
