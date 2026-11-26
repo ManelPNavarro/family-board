@@ -9,8 +9,14 @@ export async function roborockStatus(request, settings, headers) {
     return Response.json({ error: 'not_configured' }, { status: 503, headers });
   }
 
+  const unavailable = (reason, upstreamStatus) => Response.json(
+    { error: 'unavailable', reason, upstreamStatus }, { status: 502, headers },
+  );
+
+  let stage = 'configuration';
   try {
     const { origin, homeId, deviceId, user, secret, signingKey } = parseRoborockSession(settings);
+    stage = 'signing';
     const path = `/v3/user/homes/${homeId}`;
     const timestamp = Math.floor(Date.now() / 1000);
     const nonce = randomBytes(6).toString('base64url');
@@ -18,14 +24,19 @@ export async function roborockStatus(request, settings, headers) {
     const mac = createHmac('sha256', signingKey)
       .update(`${user}:${secret}:${nonce}:${timestamp}:${pathHash}::`)
       .digest('base64');
+    stage = 'network';
     const result = await fetch(new URL(path, origin), {
       headers: { Authorization: `Hawk id="${user}",s="${secret}",ts="${timestamp}",nonce="${nonce}",mac="${mac}"` },
       redirect: 'error',
       signal: AbortSignal.timeout(6000),
     });
-    if (!result.ok) throw new Error('Roborock request failed');
+    if (!result.ok) return unavailable('provider_http', result.status);
+    stage = 'provider_response';
     const home = await result.json();
-    if (home.success !== true) throw new Error('Roborock returned an error');
+    if (home.success !== true) {
+      const code = home.code ?? home.errorCode;
+      return unavailable('provider_rejected', Number.isSafeInteger(code) ? code : undefined);
+    }
 
     const device = [...(home.result?.devices ?? []), ...(home.result?.receivedDevices ?? [])]
       .find(candidate => candidate.duid === deviceId);
@@ -46,6 +57,6 @@ export async function roborockStatus(request, settings, headers) {
       stateCode: Number.isSafeInteger(state) ? state : null,
     }, { headers });
   } catch {
-    return Response.json({ error: 'unavailable' }, { status: 502, headers });
+    return unavailable(stage);
   }
 }

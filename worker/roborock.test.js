@@ -49,6 +49,6 @@ test('Roborock probe rejects writes and keeps invalid configuration off the netw
   const invalidSession = session.replace('api-eu.roborock.com', 'api-eu.roborock.com.example');
   const response = await roborockStatus(new Request(url), invalidSession, headers);
   assert.equal(response.status, 502);
-  assert.deepEqual(await response.json(), { error: 'unavailable' });
+  assert.deepEqual(await response.json(), { error: 'unavailable', reason: 'configuration' });
   assert.equal(fetchMock.mock.callCount(), 0);
 });
