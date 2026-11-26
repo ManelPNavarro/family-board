@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, Lightbulb, LightbulbOff, Power, RefreshCw, Sparkles } from 'lucide-react';
+import { ArrowRight, BatteryMedium, Bot, Lightbulb, LightbulbOff, Power, RefreshCw, Sparkles } from 'lucide-react';
 import { api } from './api.js';
 
 const path = '/api/home/light';
@@ -69,6 +69,83 @@ export function HomeOverview() {
           <LightStatus power={getPowerState(light)} />
         </li>
       </ul>
+    </section>
+  );
+}
+
+const roborockPath = '/api/home/roborock';
+
+// These are the cloud snapshot's state codes, separate from the Q7's live protocol.
+const roborockStates = {
+  3: 'En espera',
+  5: 'Netejant',
+  6: 'Tornant a la base',
+  8: 'A la base',
+  10: 'En pausa',
+  12: 'Amb una incidència',
+};
+
+function RoborockCard() {
+  const [state, setState] = useState(null);
+  const [error, setError] = useState('');
+  const [refresh, setRefresh] = useState(0);
+  const [busy, setBusy] = useState(true);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    api(roborockPath, { signal: controller.signal })
+      .then((result) => {
+        if (!controller.signal.aborted) setState(result);
+      })
+      .catch((failure) => {
+        if (controller.signal.aborted) return;
+        setState(null);
+        if (failure.message === 'session') setError(sessionMessage);
+        else if (failure.status === 503) setError('Pendent de connectar amb Roborock.');
+        else setError('No s’han pogut consultar les dades del Roborock.');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setBusy(false);
+      });
+    return () => controller.abort();
+  }, [refresh]);
+
+  const status = state?.online === false
+    ? 'Sense connexió'
+    : roborockStates[state?.stateCode] ?? (state?.online === true ? 'En línia' : 'Estat desconegut');
+  const battery = state?.battery;
+
+  return (
+    <section className="card home-device roborock-device" aria-labelledby="roborock-title">
+      <header className="card-header home-device-header">
+        <span className="dashboard-card-icon"><Bot size={22} aria-hidden="true" /></span>
+        <h2 id="roborock-title">Roborock Q7 L5+</h2>
+        <div className="home-device-actions roborock-actions">
+          <button type="button" className="home-device-refresh" disabled={busy}
+            aria-label="Actualitza l’estat del Roborock" title="Actualitza l’estat del Roborock"
+            onClick={() => {
+              setBusy(true);
+              setError('');
+              setRefresh((previous) => previous + 1);
+            }}>
+            <RefreshCw size={18} aria-hidden="true" />
+          </button>
+        </div>
+      </header>
+      <div aria-live="polite" aria-busy={busy}>
+        {state && (
+          <div className="roborock-summary">
+            <div className="roborock-battery">
+              <span><BatteryMedium size={18} aria-hidden="true" /> Bateria</span>
+              <strong>{typeof battery === 'number' ? `${battery} %` : '—'}</strong>
+              {typeof battery === 'number' && <progress value={battery} max="100" aria-label="Bateria del Roborock" />}
+            </div>
+            <p className="home-device-state" data-online={state.online}>{status}</p>
+          </div>
+        )}
+        {error && <p className="agenda-message">{error}</p>}
+      </div>
+      {busy && !state && <p className="agenda-message" role="status">S’està consultant el Roborock…</p>}
     </section>
   );
 }
@@ -200,6 +277,7 @@ export function HomeControls() {
           )}
         </section>
       )}
+      <RoborockCard />
     </section>
   );
 }

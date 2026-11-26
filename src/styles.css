@@ -247,6 +247,41 @@ a:focus-visible {
 .home-device-actions button:enabled { cursor: pointer; }
 .home-device-actions button:disabled { opacity: .62; }
 .home-device-actions button:focus-visible { outline: 2px solid var(--dashboard-accent); outline-offset: 3px; }
+.roborock-device { margin-top: 1rem; }
+.roborock-actions {
+  margin: 0 0 0 auto;
+  padding: 0;
+  border: 0;
+}
+.roborock-summary {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: .65rem 1rem;
+  margin-top: 1rem;
+}
+.roborock-battery {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: .35rem .75rem;
+  min-width: min(100%, 9rem);
+}
+.roborock-battery span {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  color: var(--dashboard-muted);
+  font-size: .875rem;
+}
+.roborock-battery strong { font-size: .9rem; }
+.roborock-battery progress {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: .45rem;
+  accent-color: var(--dashboard-accent);
+}
+.roborock-device .home-device-state[data-online="true"] { color: var(--dashboard-accent); }
 .home-scenes { margin-top: 1rem; }
 .home-scene-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
 .home-scene-grid button {
