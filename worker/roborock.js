@@ -1,6 +1,26 @@
 import { createHash, createHmac, randomBytes } from 'node:crypto';
 import { parseRoborockSession } from '../shared/roborock-session.js';
 
+function readLastCleaning(extra) {
+  try {
+    const metadata = typeof extra === 'string' ? JSON.parse(extra) : extra;
+    let record = metadata?.clean_finish;
+    // The cloud can wrap the same record in two levels of JSON strings.
+    for (let depth = 0; depth < 2 && typeof record === 'string'; depth++) {
+      record = JSON.parse(record);
+    }
+    const startedAt = record?.record_start_time;
+    if (!Number.isSafeInteger(startedAt) || startedAt <= 0 || startedAt > 8_640_000_000_000) return null;
+    const area = record.record_clean_area;
+    return {
+      startedAt: new Date(startedAt * 1000).toISOString(),
+      area: Number.isFinite(area) && area >= 0 ? area / 100 : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function roborockStatus(request, settings, headers) {
   if (request.method !== 'GET') {
     return new Response(null, { status: 405, headers: { ...headers, Allow: 'GET' } });
@@ -55,6 +75,7 @@ export async function roborockStatus(request, settings, headers) {
       online: typeof device.online === 'boolean' ? device.online : null,
       battery: Number.isInteger(battery) && battery >= 0 && battery <= 100 ? battery : null,
       stateCode: Number.isSafeInteger(state) ? state : null,
+      lastCleaning: readLastCleaning(device.extra),
     }, { headers });
   } catch {
     return unavailable(stage);

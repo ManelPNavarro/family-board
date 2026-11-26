@@ -247,7 +247,13 @@ a:focus-visible {
 .home-device-actions button:enabled { cursor: pointer; }
 .home-device-actions button:disabled { opacity: .62; }
 .home-device-actions button:focus-visible { outline: 2px solid var(--dashboard-accent); outline-offset: 3px; }
-.roborock-device { margin-top: 1rem; }
+.home-page { container: home / inline-size; }
+.home-device-grid { display: grid; gap: 1rem; align-items: start; }
+.home-light-column { min-width: 0; }
+@container home (min-width: 43rem) {
+  .home-device-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home-device-grid .home-device { max-width: none; }
+}
 .roborock-actions {
   margin: 0 0 0 auto;
   padding: 0;
@@ -281,7 +287,17 @@ a:focus-visible {
   height: .45rem;
   accent-color: var(--dashboard-accent);
 }
-.roborock-device .home-device-state[data-online="true"] { color: var(--dashboard-accent); }
+.roborock-last-cleaning {
+  display: grid;
+  gap: .25rem;
+  margin-top: 1rem;
+  padding-top: .85rem;
+  border-top: 1px solid var(--dashboard-border);
+  font-size: .875rem;
+}
+.roborock-last-cleaning dt { color: var(--dashboard-muted); }
+.roborock-last-cleaning dd { font-weight: 650; }
+:is(.roborock-device, .home-overview) .home-device-state[data-online="true"] { color: var(--dashboard-accent); }
 .home-scenes { margin-top: 1rem; }
 .home-scene-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
 .home-scene-grid button {

@@ -28,6 +28,9 @@ test('Roborock probe signs a read and returns only the configured vacuum status'
         devices: [{ duid: 'other', online: false }],
         receivedDevices: [{
           duid: 'vacuum', productId: 'model', online: true,
+          extra: JSON.stringify({ clean_finish: JSON.stringify(JSON.stringify({
+            record_start_time: 1795705200, record_clean_area: 3870, record_map_url: 'ignored',
+          })) }),
           localKey: 'ignored', deviceStatus: { 220: 96, 221: 8 },
         }],
         products: [{ id: 'model', schema: [{ code: 'battery', id: 220 }, { code: 'state', id: 221 }] }],
@@ -39,7 +42,10 @@ test('Roborock probe signs a read and returns only the configured vacuum status'
   assert.equal(fetchMock.mock.callCount(), 1);
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('Cache-Control'), 'private, no-store');
-  assert.deepEqual(await response.json(), { online: true, battery: 96, stateCode: 8 });
+  assert.deepEqual(await response.json(), {
+    online: true, battery: 96, stateCode: 8,
+    lastCleaning: { startedAt: new Date(1795705200 * 1000).toISOString(), area: 38.7 },
+  });
 });
 
 test('Roborock probe rejects writes and keeps invalid configuration off the network', async (t) => {

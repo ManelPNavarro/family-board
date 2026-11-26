@@ -25,6 +25,17 @@ function LightStatus({ power }) {
 
 export function HomeOverview() {
   const [light, setLight] = useState(null);
+  const [roborock, setRoborock] = useState(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    api(roborockPath, { signal: controller.signal }).then((state) => {
+      if (!controller.signal.aborted) setRoborock(state);
+    }).catch((error) => {
+      if (!controller.signal.aborted && error.status === 502) setRoborock({});
+    });
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     let request;
@@ -54,7 +65,7 @@ export function HomeOverview() {
     };
   }, []);
 
-  if (!light?.configured) return null;
+  if (!light?.configured && !roborock) return null;
 
   return (
     <section className="card home-overview" aria-labelledby="home-overview-title">
@@ -64,10 +75,20 @@ export function HomeOverview() {
         <a className="agenda-link" href="#casa">Veure Casa <ArrowRight size={16} aria-hidden="true" /></a>
       </header>
       <ul className="home-overview-devices">
-        <li>
-          <strong>{lightTitle}</strong>
-          <LightStatus power={getPowerState(light)} />
-        </li>
+        {light?.configured && (
+          <li>
+            <strong>{lightTitle}</strong>
+            <LightStatus power={getPowerState(light)} />
+          </li>
+        )}
+        {roborock && (
+          <li>
+            <strong>Roborock</strong>
+            <span className="home-device-state" data-online={roborock.online}>
+              {getRoborockStatus(roborock)}{typeof roborock.battery === 'number' && ` · ${roborock.battery} %`}
+            </span>
+          </li>
+        )}
       </ul>
     </section>
   );
@@ -84,6 +105,16 @@ const roborockStates = {
   10: 'En pausa',
   12: 'Amb una incidència',
 };
+
+function getRoborockStatus(state) {
+  if (state?.online === false) return 'Sense connexió';
+  return roborockStates[state?.stateCode] ?? (state?.online === true ? 'En línia' : 'Estat desconegut');
+}
+
+const cleaningDate = new Intl.DateTimeFormat('ca-ES', {
+  timeZone: 'Europe/Madrid', dateStyle: 'medium', timeStyle: 'short',
+});
+const cleaningArea = new Intl.NumberFormat('ca-ES', { maximumFractionDigits: 1 });
 
 function RoborockCard() {
   const [state, setState] = useState(null);
@@ -110,9 +141,6 @@ function RoborockCard() {
     return () => controller.abort();
   }, [refresh]);
 
-  const status = state?.online === false
-    ? 'Sense connexió'
-    : roborockStates[state?.stateCode] ?? (state?.online === true ? 'En línia' : 'Estat desconegut');
   const battery = state?.battery;
 
   return (
@@ -140,8 +168,19 @@ function RoborockCard() {
               <strong>{typeof battery === 'number' ? `${battery} %` : '—'}</strong>
               {typeof battery === 'number' && <progress value={battery} max="100" aria-label="Bateria del Roborock" />}
             </div>
-            <p className="home-device-state" data-online={state.online}>{status}</p>
+            <p className="home-device-state" data-online={state.online}>{getRoborockStatus(state)}</p>
           </div>
+        )}
+        {state?.lastCleaning && (
+          <dl className="roborock-last-cleaning">
+            <dt>Última neteja</dt>
+            <dd>
+              <time dateTime={state.lastCleaning.startedAt}>
+                {cleaningDate.format(new Date(state.lastCleaning.startedAt))}
+              </time>
+              {typeof state.lastCleaning.area === 'number' && ` · ${cleaningArea.format(state.lastCleaning.area)} m²`}
+            </dd>
+          </dl>
         )}
         {error && <p className="agenda-message">{error}</p>}
       </div>
@@ -231,53 +270,57 @@ export function HomeControls() {
   const BulbIcon = powerState === 'off' ? LightbulbOff : Lightbulb;
 
   return (
-    <section aria-labelledby="home-title">
+    <section className="home-page" aria-labelledby="home-title">
       <header className="dashboard-heading grocery-heading"><h1 id="home-title">Casa</h1></header>
-      <section className="card home-device" aria-labelledby="light-title" data-power={powerState}>
-        <header className="card-header home-device-header">
-          <span className="dashboard-card-icon home-device-icon"><BulbIcon size={22} aria-hidden="true" /></span>
-          <h2 id="light-title">{lightTitle}</h2>
-          <LightStatus power={powerState} />
-        </header>
-        {light && !light.configured && <p className="agenda-message">Pendent de connectar amb Tuya.</p>}
-        {message && <p className="agenda-message" role="status">{message}</p>}
-        <div className="home-device-actions">
-          {light?.configured && (
-            <button type="button" className="home-device-power" disabled={busy || typeof light.on !== 'boolean'}
-              onClick={() => void updateLight({ on: !light.on })}>
-              <Power size={17} aria-hidden="true" />
-              {light.on ? 'Apaga' : 'Encén'}
-            </button>
-          )}
-          <button type="button" className="home-device-refresh" disabled={busy}
-            aria-label="Actualitza l’estat" title="Actualitza l’estat" onClick={() => void updateLight()}>
-            <RefreshCw size={18} aria-hidden="true" />
-          </button>
-        </div>
-      </section>
-      {light?.configured && (scenes || scenesError) && (
-        <section className="card home-device home-scenes" aria-labelledby="scenes-title">
-          <header className="card-header">
-            <span className="dashboard-card-icon"><Sparkles size={21} aria-hidden="true" /></span>
-            <h2 id="scenes-title">Escenes de llum</h2>
-          </header>
-          {scenes?.length ? (
-            <div className="home-scene-grid">
-              {scenes.map(({ id, title, detail }) => (
-                <button type="button" key={id} disabled={busy || powerState === 'offline'} onClick={() => void updateLight({ scene: id })}>
-                  <strong>{title}</strong>
-                  <span>{detail}</span>
+      <div className="home-device-grid">
+        <div className="home-light-column">
+          <section className="card home-device" aria-labelledby="light-title" data-power={powerState}>
+            <header className="card-header home-device-header">
+              <span className="dashboard-card-icon home-device-icon"><BulbIcon size={22} aria-hidden="true" /></span>
+              <h2 id="light-title">{lightTitle}</h2>
+              <LightStatus power={powerState} />
+            </header>
+            {light && !light.configured && <p className="agenda-message">Pendent de connectar amb Tuya.</p>}
+            {message && <p className="agenda-message" role="status">{message}</p>}
+            <div className="home-device-actions">
+              {light?.configured && (
+                <button type="button" className="home-device-power" disabled={busy || typeof light.on !== 'boolean'}
+                  onClick={() => void updateLight({ on: !light.on })}>
+                  <Power size={17} aria-hidden="true" />
+                  {light.on ? 'Apaga' : 'Encén'}
                 </button>
-              ))}
+              )}
+              <button type="button" className="home-device-refresh" disabled={busy}
+                aria-label="Actualitza l’estat" title="Actualitza l’estat" onClick={() => void updateLight()}>
+                <RefreshCw size={18} aria-hidden="true" />
+              </button>
             </div>
-          ) : (
-            <p className="agenda-message">
-              {scenesError ? 'No s’han pogut carregar les escenes.' : 'Aquesta bombeta no ofereix els controls necessaris per a les escenes.'}
-            </p>
+          </section>
+          {light?.configured && (scenes || scenesError) && (
+            <section className="card home-device home-scenes" aria-labelledby="scenes-title">
+              <header className="card-header">
+                <span className="dashboard-card-icon"><Sparkles size={21} aria-hidden="true" /></span>
+                <h2 id="scenes-title">Escenes de llum</h2>
+              </header>
+              {scenes?.length ? (
+                <div className="home-scene-grid">
+                  {scenes.map(({ id, title, detail }) => (
+                    <button type="button" key={id} disabled={busy || powerState === 'offline'} onClick={() => void updateLight({ scene: id })}>
+                      <strong>{title}</strong>
+                      <span>{detail}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="agenda-message">
+                  {scenesError ? 'No s’han pogut carregar les escenes.' : 'Aquesta bombeta no ofereix els controls necessaris per a les escenes.'}
+                </p>
+              )}
+            </section>
           )}
-        </section>
-      )}
-      <RoborockCard />
+        </div>
+        <RoborockCard />
+      </div>
     </section>
   );
 }
