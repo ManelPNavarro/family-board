@@ -1,11 +1,22 @@
-import { taskPriorities, validDueDate } from '../shared/tasks.js';
+import { dayKey } from '../shared/dates.js';
+import { nextTaskDate, taskAssignees, taskPriorities, taskRecurrences, validDueDate } from '../shared/tasks.js';
 
 const listPath = '/api/tasks';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
-const fields = 'id, title, due_date AS dueDate, priority, completed';
+const fields = 'id, title, due_date AS dueDate, priority, completed, assignee, recurrence';
 
 function task(row) {
-  return { ...row, completed: row.completed === 1 };
+  const { revision, recurrenceDay, ...data } = row;
+  return { ...data, completed: row.completed === 1 };
+}
+
+function insertTask(db, id, values, condition = '', conditionParams = []) {
+  return db.prepare(`
+    INSERT INTO tasks (id, title, due_date, priority, assignee, recurrence, recurrence_day)
+    SELECT ?, ?, ?, ?, ?, ?, ? ${condition}
+    ON CONFLICT(id) DO NOTHING
+  `).bind(id, values.title, values.dueDate, values.priority, values.assignee, values.recurrence,
+    values.recurrenceDay, ...conditionParams);
 }
 
 export async function tasks(request, db, headers) {
@@ -41,36 +52,79 @@ export async function tasks(request, db, headers) {
     const body = await request.json().catch(() => null);
     if (!body || typeof body !== 'object' || Array.isArray(body)) return result(invalid, 400);
 
-    const { dueDate, priority, completed } = body;
+    const { dueDate, priority, completed, recurrence, assignee } = body;
     const title = typeof body.title === 'string' ? body.title.trim() : '';
     const hasDueDate = Object.hasOwn(body, 'dueDate');
     if ((Object.hasOwn(body, 'title') && (!title || title.length > 120)) ||
         (hasDueDate && dueDate !== null && !validDueDate(dueDate)) ||
         (priority !== undefined && !taskPriorities.includes(priority)) ||
+        (recurrence !== undefined && (typeof recurrence !== 'string' || !Object.hasOwn(taskRecurrences, recurrence))) ||
+        (assignee !== undefined && assignee !== null && (typeof assignee !== 'string' || !Object.hasOwn(taskAssignees, assignee))) ||
         (completed !== undefined && typeof completed !== 'boolean')) return result(invalid, 400);
 
     if (method === 'POST') {
-      if (!title || typeof body.id !== 'string' || !uuid.test(body.id)) return result(invalid, 400);
+      if (!title || typeof body.id !== 'string' || !uuid.test(body.id) ||
+          (recurrence && recurrence !== 'none' && !dueDate)) return result(invalid, 400);
       const [, { results }] = await db.batch([
-        db.prepare('INSERT INTO tasks (id, title, due_date, priority) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO NOTHING')
-          .bind(body.id, title, dueDate ?? null, priority ?? 'normal'),
+        insertTask(db, body.id, {
+          title, dueDate: dueDate ?? null, priority: priority ?? 'normal', assignee: assignee ?? null,
+          recurrence: recurrence ?? 'none', recurrenceDay: recurrence === 'monthly' ? Number(dueDate.slice(8)) : null,
+        }),
         db.prepare(`SELECT ${fields} FROM tasks WHERE id = ?`).bind(body.id),
       ]);
       return result({ task: task(results[0]) }, 201);
     }
 
-    if (!title && !hasDueDate && priority === undefined && completed === undefined) return result(invalid, 400);
-    const row = await db.prepare(`
-      UPDATE tasks SET
-        title = COALESCE(?, title),
-        due_date = CASE WHEN ? THEN ? ELSE due_date END,
-        priority = COALESCE(?, priority),
-        completed = COALESCE(?, completed)
-      WHERE id = ?
+    if (!title && !hasDueDate && priority === undefined && completed === undefined &&
+        recurrence === undefined && assignee === undefined) return result(invalid, 400);
+
+    const current = await db.prepare(`
+      SELECT ${fields}, recurrence_day AS recurrenceDay, revision FROM tasks WHERE id = ?
+    `).bind(id).first();
+    if (!current) return result({ error: 'not_found' }, 404);
+
+    const updated = {
+      title: title || current.title,
+      dueDate: hasDueDate ? dueDate : current.dueDate,
+      priority: priority ?? current.priority,
+      assignee: assignee === undefined ? current.assignee : assignee,
+      // Reopening a past occurrence makes it a one-off. Its successor keeps the schedule.
+      recurrence: recurrence ?? (completed === false && current.completed ? 'none' : current.recurrence),
+      completed: completed === undefined ? current.completed : Number(completed),
+    };
+    if (updated.recurrence !== 'none' && !updated.dueDate) return result(invalid, 400);
+    updated.recurrenceDay = updated.recurrence === 'monthly'
+      ? (updated.dueDate === current.dueDate && current.recurrenceDay) || Number(updated.dueDate.slice(8))
+      : null;
+
+    const update = db.prepare(`
+      UPDATE tasks SET title = ?, due_date = ?, priority = ?, assignee = ?, recurrence = ?,
+        recurrence_day = ?, completed = ?, revision = revision + 1
+      WHERE id = ? AND revision = ?
       RETURNING ${fields}
-    `).bind(title || null, Number(hasDueDate), dueDate ?? null, priority ?? null,
-      completed === undefined ? null : Number(completed), id).first();
-    return row ? result({ task: task(row) }) : result({ error: 'not_found' }, 404);
+    `).bind(updated.title, updated.dueDate, updated.priority, updated.assignee,
+      updated.recurrence, updated.recurrenceDay, updated.completed, id, current.revision);
+
+    const nextDate = completed && !current.completed
+      ? nextTaskDate(updated.dueDate, updated.recurrence, updated.recurrenceDay, dayKey(new Date()))
+      : null;
+    if (!nextDate) {
+      const row = await update.first();
+      return row ? result({ task: task(row) }) : result({ error: 'conflict' }, 409);
+    }
+
+    // Both statements check the same revision inside one transaction so retries
+    // and two people checking off the same occurrence cannot add a duplicate.
+    const nextId = crypto.randomUUID();
+    const [, done, next] = await db.batch([
+      insertTask(db, nextId, { ...updated, dueDate: nextDate },
+        'WHERE EXISTS (SELECT 1 FROM tasks WHERE id = ? AND revision = ? AND completed = 0)',
+        [id, current.revision]),
+      update,
+      db.prepare(`SELECT ${fields} FROM tasks WHERE id = ?`).bind(nextId),
+    ]);
+    if (!done.results.length) return result({ error: 'conflict' }, 409);
+    return result({ task: task(done.results[0]), nextTask: task(next.results[0]) });
   } catch {
     return result({ error: 'unavailable' }, 503);
   }

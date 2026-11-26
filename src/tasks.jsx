@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowRight, CalendarDays, ListChecks, Pencil, Plus, Trash2, X } from 'lucide-react';
-import { compareTasks, taskDates, taskPeriods, taskPriorities, validDueDate } from '../shared/tasks.js';
+import { ArrowRight, CalendarDays, ListChecks, Pencil, Plus, Repeat2, Trash2, UserRound, X } from 'lucide-react';
+import { compareTasks, taskAssignees, taskDates, taskPeriods, taskPriorities, taskRecurrences, validDueDate } from '../shared/tasks.js';
 import { api } from './api.js';
 
 const path = '/api/tasks';
@@ -20,6 +20,11 @@ function TaskPriority({ priority }) {
 
 function TaskDate({ date }) {
   return <time dateTime={date}>{dueDateFormat.format(new Date(`${date}T00:00:00Z`))}</time>;
+}
+
+function TaskAssignee({ assignee }) {
+  if (!assignee) return null;
+  return <span className="task-assignee"><UserRound size={14} aria-hidden="true" /> {taskAssignees[assignee]}</span>;
 }
 
 export function TaskOverview({ today }) {
@@ -45,6 +50,7 @@ export function TaskOverview({ today }) {
                 <strong>{task.title}</strong>
                 <div className="task-details">
                   <TaskPriority priority={task.priority} />
+                  <TaskAssignee assignee={task.assignee} />
                   {id === 'week' && <span className="task-due"><TaskDate date={task.dueDate} /></span>}
                 </div>
               </li>
@@ -71,11 +77,17 @@ function TaskGroup({ entries, id, heading, today, enabled, onEdit, onToggle }) {
                 <span className="task-title">{task.title}</span>
                 <span className="task-details">
                   <TaskPriority priority={task.priority} />
+                  <TaskAssignee assignee={task.assignee} />
                   {task.dueDate && (
                     <span className="task-due">
                       <CalendarDays size={15} aria-hidden="true" />
                       {!task.completed && task.dueDate < today ? 'Vençuda · ' : ''}
                       <TaskDate date={task.dueDate} />
+                    </span>
+                  )}
+                  {task.recurrence && task.recurrence !== 'none' && (
+                    <span className="task-recurrence">
+                      <Repeat2 size={15} aria-hidden="true" /> {taskRecurrences[task.recurrence]}
                     </span>
                   )}
                 </span>
@@ -96,6 +108,7 @@ function useTasks() {
   const [tasks, setTasks] = useState(null);
   const [message, setMessage] = useState('loading');
   const [saveError, setSaveError] = useState(false);
+  const [nextDate, setNextDate] = useState(null);
   const [busy, setBusy] = useState(false);
   const refreshRequest = useRef(null);
   const saving = useRef(false);
@@ -139,6 +152,7 @@ function useTasks() {
     refreshRequest.current?.abort();
     setBusy(true);
     setSaveError(false);
+    setNextDate(null);
     try {
       const data = await api(method === 'POST' ? path : `${path}/${id}`, {
         method,
@@ -149,11 +163,13 @@ function useTasks() {
       });
       setTasks((previous) => {
         if (method === 'DELETE') return previous.filter((item) => item.id !== id);
-        const { task } = data;
-        return previous.some((item) => item.id === task.id)
+        const { task, nextTask } = data;
+        const updated = previous.some((item) => item.id === task.id)
           ? previous.map((item) => item.id === task.id ? task : item)
           : [...previous, task];
+        return nextTask ? [...updated, nextTask] : updated;
       });
+      if (data?.nextTask) setNextDate(data.nextTask.dueDate);
       return true;
     } catch (error) {
       if (error.message === 'session') setMessage('session');
@@ -166,13 +182,14 @@ function useTasks() {
     }
   }
 
-  return { tasks, message, saveError, setSaveError, busy, saving, save };
+  return { tasks, message, saveError, setSaveError, nextDate, busy, saving, save };
 }
 
 export function Tasks({ today }) {
-  const { tasks, message, saveError, setSaveError, busy, saving, save } = useTasks();
+  const { tasks, message, saveError, setSaveError, nextDate, busy, saving, save } = useTasks();
   const [editor, setEditor] = useState(null);
   const [dueDate, setDueDate] = useState('');
+  const [recurrence, setRecurrence] = useState('none');
   const dialog = useRef(null);
   const nameInput = useRef(null);
   const form = useRef(null);
@@ -183,6 +200,8 @@ export function Tasks({ today }) {
     setEditor({ task, id: task?.id ?? crypto.randomUUID() });
     form.current.elements.title.value = task?.title ?? '';
     setDueDate(task?.dueDate ?? '');
+    setRecurrence(task?.recurrence ?? 'none');
+    form.current.elements.assignee.value = task?.assignee ?? '';
     form.current.elements.priority.value = task?.priority ?? 'normal';
     dialog.current.showModal();
     nameInput.current.focus();
@@ -194,6 +213,7 @@ export function Tasks({ today }) {
     const title = data.get('title').trim();
     const dueDate = data.get('dueDate') || null;
     const priority = data.get('priority');
+    const assignee = data.get('assignee') || null;
     if (!title) {
       nameInput.current.setCustomValidity('Escriu el nom de la tasca.');
       nameInput.current.reportValidity();
@@ -201,7 +221,7 @@ export function Tasks({ today }) {
     }
     if (dueDate && !validDueDate(dueDate)) return;
 
-    const values = { title, dueDate, priority };
+    const values = { title, dueDate, priority, recurrence, assignee };
     if (editor.task) {
       const changes = Object.fromEntries(Object.entries(values).filter(([key, value]) => editor.task[key] !== value));
       if (Object.keys(changes).length && !await save('PATCH', editor.id, changes)) return;
@@ -232,6 +252,9 @@ export function Tasks({ today }) {
       </header>
       <div className="card">
         {!editor && error && <p className="agenda-message" role="status">{error}</p>}
+        {!editor && !error && nextDate && (
+          <p className="agenda-message" role="status">Tasca completada. Següent repetició el <TaskDate date={nextDate} />.</p>
+        )}
         {tasks && pending.length === 0 && (
           <p className="grocery-empty">{completed.length ? 'Ja ho heu fet tot.' : 'Encara no hi ha cap tasca.'}</p>
         )}
@@ -265,7 +288,7 @@ export function Tasks({ today }) {
           <div className="task-form-date">
             <label>Data límit
               <input name="dueDate" type="date" min="1000-01-01" max="9999-12-31" disabled={busy}
-                value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
+                required={recurrence !== 'none'} value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
             </label>
             <div className="task-date-shortcuts" role="group" aria-label="Dates ràpides">
               {[
@@ -281,6 +304,17 @@ export function Tasks({ today }) {
           <label>Prioritat
             <select name="priority" defaultValue="normal" disabled={busy}>
               {taskPriorities.map((priority) => <option key={priority} value={priority}>{priorities[priority]}</option>)}
+            </select>
+          </label>
+          <label>Repetició
+            <select name="recurrence" value={recurrence} onChange={(event) => setRecurrence(event.target.value)} disabled={busy}>
+              {Object.entries(taskRecurrences).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </label>
+          <label>Responsable
+            <select name="assignee" defaultValue="" disabled={busy}>
+              <option value="">Sense assignar</option>
+              {Object.entries(taskAssignees).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </label>
           <button type="submit" className="task-save" disabled={!enabled}>Desa</button>
