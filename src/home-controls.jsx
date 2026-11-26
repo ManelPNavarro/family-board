@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, BatteryMedium, Bot, Lightbulb, LightbulbOff, Power, RefreshCw, Sparkles } from 'lucide-react';
+import { ArrowRight, BatteryMedium, Bot, Lightbulb, LightbulbOff, Play, Power, RefreshCw, Sparkles } from 'lucide-react';
 import { api } from './api.js';
 
 const path = '/api/home/light';
@@ -143,6 +143,8 @@ function RoborockCard() {
   const [error, setError] = useState('');
   const [refresh, setRefresh] = useState(0);
   const [busy, setBusy] = useState(true);
+  const [starting, setStarting] = useState(false);
+  const [startMessage, setStartMessage] = useState('');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -163,6 +165,22 @@ function RoborockCard() {
     return () => controller.abort();
   }, [refresh]);
 
+  async function startCleaning() {
+    setStarting(true);
+    setStartMessage('');
+    try {
+      await api(`${roborockPath}/clean`, { method: 'POST' });
+      setStartMessage('Ordre de neteja enviada.');
+    } catch (failure) {
+      if (failure.message === 'session') setStartMessage(sessionMessage);
+      else if (failure.status === 409) setStartMessage('El Roborock ara mateix no està disponible per netejar.');
+      else setStartMessage('No s’ha pogut confirmar l’inici. Actualitza l’estat del Roborock.');
+    } finally {
+      setState((previous) => previous && { ...previous, canStartCleaning: false });
+      setStarting(false);
+    }
+  }
+
   const battery = state?.battery;
 
   return (
@@ -171,17 +189,25 @@ function RoborockCard() {
         <span className="dashboard-card-icon"><Bot size={22} aria-hidden="true" /></span>
         <h2 id="roborock-title">Roborock Q7 L5+</h2>
         <div className="home-device-actions roborock-actions">
-          <button type="button" className="home-device-refresh" disabled={busy}
+          <button type="button" className="home-device-power" disabled={busy || starting || !state?.canStartCleaning}
+            onClick={() => void startCleaning()}>
+            <Play size={16} aria-hidden="true" /> Neteja
+          </button>
+          <button type="button" className="home-device-refresh" disabled={busy || starting}
             aria-label="Actualitza l’estat del Roborock" title="Actualitza l’estat del Roborock"
             onClick={() => {
               setBusy(true);
               setError('');
+              setStartMessage('');
               setRefresh((previous) => previous + 1);
             }}>
             <RefreshCw size={18} aria-hidden="true" />
           </button>
         </div>
       </header>
+      {(starting || startMessage) && (
+        <p className="agenda-message" role="status">{starting ? 'S’està enviant l’ordre de neteja…' : startMessage}</p>
+      )}
       <div aria-live="polite" aria-busy={busy}>
         {state && (
           <div className="roborock-summary">

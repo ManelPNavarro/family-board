@@ -17,7 +17,7 @@ function frameIv(nonce) {
   return Buffer.from(md5(nonce.toString(16).padStart(8, '0') + ivSalt).slice(9, 25));
 }
 
-export function encodeHistoryRequest(localKey, requestId) {
+export function encodeRoborockRequest(localKey, requestId, method, params) {
   const header = Buffer.alloc(headerLength);
   header.write(b01Version);
   randomBytes(8).copy(header, 3);
@@ -25,7 +25,7 @@ export function encodeHistoryRequest(localKey, requestId) {
   header.writeUInt16BE(101, 15);
 
   const body = Buffer.from(JSON.stringify({
-    dps: { 10000: { method: 'service.get_record_list', msgId: requestId, params: {} } },
+    dps: { 10000: { method, msgId: requestId, params } },
   }));
   // Q7 pads the JSON payload as well as the AES transport envelope.
   const padding = 16 - body.length % 16;
@@ -39,7 +39,7 @@ export function encodeHistoryRequest(localKey, requestId) {
   return frame;
 }
 
-export function decodeHistoryReply(payload, localKey, requestId) {
+export function decodeRoborockReply(payload, localKey, requestId) {
   const offset = payload.indexOf(b01Version);
   if (offset < 0 || payload.length - offset < headerLength + checksumLength) return null;
   const frame = payload.subarray(offset);
@@ -70,15 +70,15 @@ export function decodeHistoryReply(payload, localKey, requestId) {
       }
     }
     if (String(reply?.msgId) !== requestId) continue;
-    if (Number(reply.code ?? 0) !== 0 || !Array.isArray(reply.data?.record_list)) {
+    if (Number(reply.code ?? 0) !== 0) {
       throw new Error('device_rejected');
     }
-    return reply.data.record_list;
+    return reply;
   }
   return null;
 }
 
-export async function readCleaningHistory(session, deviceKey) {
+async function sendRoborockRequest(session, deviceKey, method, params) {
   const localKey = Buffer.from(deviceKey ?? '');
   if (localKey.length !== 16) throw new Error('device_key');
 
@@ -88,7 +88,7 @@ export async function readCleaningHistory(session, deviceKey) {
   const deviceTopic = `${session.user}/${username}/${session.deviceId}`;
   const receiveTopic = `rr/m/o/${deviceTopic}`;
   const requestId = String(randomInt(100_000_000_000, 1_000_000_000_000));
-  const payload = encodeHistoryRequest(localKey, requestId);
+  const payload = encodeRoborockRequest(localKey, requestId, method, params);
 
   return new Promise((resolve, reject) => {
     const socket = connect({ host, port: 8883, servername: host });
@@ -138,9 +138,9 @@ export async function readCleaningHistory(session, deviceKey) {
         send({ cmd: 'publish', topic: `rr/m/i/${deviceTopic}`, payload, qos: 0 });
       } else if (packet.cmd === 'publish' && packet.topic === receiveTopic && stage === 'device_reply') {
         try {
-          const records = decodeHistoryReply(packet.payload, localKey, requestId);
-          if (records !== null) {
-            resolve(records);
+          const reply = decodeRoborockReply(packet.payload, localKey, requestId);
+          if (reply !== null) {
+            resolve(reply.data);
             close();
           }
         } catch {
@@ -148,5 +148,20 @@ export async function readCleaningHistory(session, deviceKey) {
         }
       }
     });
+  });
+}
+
+export async function readCleaningHistory(session, deviceKey) {
+  const data = await sendRoborockRequest(session, deviceKey, 'service.get_record_list', {});
+  if (!Array.isArray(data?.record_list)) throw new Error('response_format');
+  return data.record_list;
+}
+
+export async function startFullCleaning(session, deviceKey) {
+  // Full cleaning with the robot's current settings.
+  await sendRoborockRequest(session, deviceKey, 'service.set_room_clean', {
+    clean_type: 0,
+    ctrl_value: 1,
+    room_ids: [],
   });
 }

@@ -1,6 +1,6 @@
 import { createHash, createHmac, randomBytes } from 'node:crypto';
 import { parseRoborockSession } from '../shared/roborock-session.js';
-import { readCleaningHistory } from './roborock-history.js';
+import { readCleaningHistory, startFullCleaning } from './roborock-mqtt.js';
 
 function parseCleaning(detail) {
   try {
@@ -36,8 +36,14 @@ const historyFailures = new Set([
 ]);
 
 export async function roborockStatus(request, settings, headers) {
-  if (request.method !== 'GET') {
-    return new Response(null, { status: 405, headers: { ...headers, Allow: 'GET' } });
+  const url = new URL(request.url);
+  const start = url.pathname === '/api/home/roborock/clean';
+  const allowed = start ? 'POST' : 'GET';
+  if (request.method !== allowed) {
+    return new Response(null, { status: 405, headers: { ...headers, Allow: allowed } });
+  }
+  if (start && request.headers.get('Origin') !== url.origin) {
+    return Response.json({ error: 'forbidden' }, { status: 403, headers });
   }
   if (!settings) {
     return Response.json({ error: 'not_configured' }, { status: 503, headers });
@@ -50,6 +56,9 @@ export async function roborockStatus(request, settings, headers) {
   let stage = 'configuration';
   try {
     const session = parseRoborockSession(settings);
+    if (start && !session.mqttBroker) {
+      return Response.json({ error: 'not_configured' }, { status: 503, headers });
+    }
     const { origin, homeId, deviceId, user, secret, signingKey } = session;
     stage = 'signing';
     const path = `/v3/user/homes/${homeId}`;
@@ -86,14 +95,25 @@ export async function roborockStatus(request, settings, headers) {
     const battery = device.deviceStatus?.[batteryField?.id ?? 122];
     const state = device.deviceStatus?.[stateField?.id ?? 121];
 
+    const canStartCleaning = Boolean(session.mqttBroker && device.online === true && (state === 3 || state === 8));
+    if (start) {
+      if (!canStartCleaning) {
+        return Response.json({ error: 'not_ready' }, { status: 409, headers });
+      }
+      stage = 'cleaning_command';
+      await startFullCleaning(session, device.localKey);
+      return new Response(null, { status: 204, headers });
+    }
+
     const snapshot = {
+      canStartCleaning,
       online: typeof device.online === 'boolean' ? device.online : null,
       battery: Number.isInteger(battery) && battery >= 0 && battery <= 100 ? battery : null,
       stateCode: Number.isSafeInteger(state) ? state : null,
       lastCleaning: readLastCleaning(device.extra),
     };
 
-    if (new URL(request.url).searchParams.get('history') === '1') {
+    if (url.searchParams.get('history') === '1') {
       if (!session.mqttBroker) {
         snapshot.historyError = 'not_configured';
       } else {

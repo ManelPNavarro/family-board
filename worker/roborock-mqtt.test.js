@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
 import test from 'node:test';
-import { decodeHistoryReply } from './roborock-history.js';
+import { decodeRoborockReply } from './roborock-mqtt.js';
 
 test('Q7 history accepts a Python Roborock reply only for the matching request', () => {
   // Produced with python-roborock 7.33.0 using a synthetic device key and cleaning.
@@ -13,10 +13,10 @@ test('Q7 history accepts a Python Roborock reply only for the matching request',
     'f468e42ce32b4c75a8c20ad5416ec5d568ac',
   ].join(''), 'hex');
   const key = Buffer.from('0123456789abcdef');
-  assert.deepEqual(decodeHistoryReply(reply, key, '123456789012').map(({ detail }) => JSON.parse(detail)), [
+  assert.deepEqual(decodeRoborockReply(reply, key, '123456789012').data.record_list.map(({ detail }) => JSON.parse(detail)), [
     { record_start_time: 1795705200, record_clean_area: 3870 },
   ]);
-  assert.equal(decodeHistoryReply(reply, key, '123456789013'), null);
+  assert.equal(decodeRoborockReply(reply, key, '123456789013'), null);
   reply[25] ^= 1;
-  assert.equal(decodeHistoryReply(reply, key, '123456789012'), null);
+  assert.equal(decodeRoborockReply(reply, key, '123456789012'), null);
 });

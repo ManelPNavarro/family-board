@@ -61,7 +61,7 @@ export default {
       return homeLight(request, env.TUYA_LIGHT, headers);
     }
 
-    if (pathname === '/api/home/roborock') {
+    if (pathname === '/api/home/roborock' || pathname === '/api/home/roborock/clean') {
       return roborockStatus(request, env.ROBOROCK_SESSION, headers);
     }
 
