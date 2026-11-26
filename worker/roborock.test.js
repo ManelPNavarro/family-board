@@ -14,7 +14,7 @@ test('Roborock probe signs a read and returns only the configured vacuum status'
   const fetchMock = t.mock.method(globalThis, 'fetch', async (target, options) => {
     const path = '/v3/user/homes/123';
     assert.equal(target.href, `https://api-eu.roborock.com${path}`);
-    assert.equal(options.redirect, 'error');
+    assert.equal(options.redirect, 'manual');
     const auth = Object.fromEntries([...options.headers.Authorization.matchAll(/(\w+)="([^"]+)"/g)]
       .map(([, field, value]) => [field, value]));
     const hash = createHash('md5').update(path).digest('hex');

@@ -27,7 +27,7 @@ export async function roborockStatus(request, settings, headers) {
     stage = 'network';
     const result = await fetch(new URL(path, origin), {
       headers: { Authorization: `Hawk id="${user}",s="${secret}",ts="${timestamp}",nonce="${nonce}",mac="${mac}"` },
-      redirect: 'error',
+      redirect: 'manual',
       signal: AbortSignal.timeout(6000),
     });
     if (!result.ok) return unavailable('provider_http', result.status);
