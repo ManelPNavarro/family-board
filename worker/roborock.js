@@ -1,11 +1,11 @@
 import { createHash, createHmac, randomBytes } from 'node:crypto';
 import { parseRoborockSession } from '../shared/roborock-session.js';
+import { readCleaningHistory } from './roborock-history.js';
 
-function readLastCleaning(extra) {
+function parseCleaning(detail) {
   try {
-    const metadata = typeof extra === 'string' ? JSON.parse(extra) : extra;
-    let record = metadata?.clean_finish;
     // The cloud can wrap the same record in two levels of JSON strings.
+    let record = detail;
     for (let depth = 0; depth < 2 && typeof record === 'string'; depth++) {
       record = JSON.parse(record);
     }
@@ -21,6 +21,20 @@ function readLastCleaning(extra) {
   }
 }
 
+function readLastCleaning(extra) {
+  try {
+    const metadata = typeof extra === 'string' ? JSON.parse(extra) : extra;
+    return parseCleaning(metadata?.clean_finish);
+  } catch {
+    return null;
+  }
+}
+
+const historyFailures = new Set([
+  'device_key', 'tls', 'mqtt_login', 'mqtt_subscribe', 'device_reply',
+  'device_rejected', 'response_size', 'response_format',
+]);
+
 export async function roborockStatus(request, settings, headers) {
   if (request.method !== 'GET') {
     return new Response(null, { status: 405, headers: { ...headers, Allow: 'GET' } });
@@ -35,7 +49,8 @@ export async function roborockStatus(request, settings, headers) {
 
   let stage = 'configuration';
   try {
-    const { origin, homeId, deviceId, user, secret, signingKey } = parseRoborockSession(settings);
+    const session = parseRoborockSession(settings);
+    const { origin, homeId, deviceId, user, secret, signingKey } = session;
     stage = 'signing';
     const path = `/v3/user/homes/${homeId}`;
     const timestamp = Math.floor(Date.now() / 1000);
@@ -71,12 +86,35 @@ export async function roborockStatus(request, settings, headers) {
     const battery = device.deviceStatus?.[batteryField?.id ?? 122];
     const state = device.deviceStatus?.[stateField?.id ?? 121];
 
-    return Response.json({
+    const snapshot = {
       online: typeof device.online === 'boolean' ? device.online : null,
       battery: Number.isInteger(battery) && battery >= 0 && battery <= 100 ? battery : null,
       stateCode: Number.isSafeInteger(state) ? state : null,
       lastCleaning: readLastCleaning(device.extra),
-    }, { headers });
+    };
+
+    if (new URL(request.url).searchParams.get('history') === '1') {
+      if (!session.mqttBroker) {
+        snapshot.historyError = 'not_configured';
+      } else {
+        try {
+          const records = await readCleaningHistory(session, device.localKey);
+          const byStart = new Map();
+          for (const item of records) {
+            const cleaning = parseCleaning(item?.detail);
+            if (cleaning) byStart.set(cleaning.startedAt, cleaning);
+          }
+          if (records.length && !byStart.size) throw new Error('response_format');
+          snapshot.recentCleanings = [...byStart.values()]
+            .sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))
+            .slice(0, 3);
+        } catch (error) {
+          snapshot.historyError = historyFailures.has(error.message) ? error.message : 'unavailable';
+        }
+      }
+    }
+
+    return Response.json(snapshot, { headers });
   } catch {
     return unavailable(stage);
   }

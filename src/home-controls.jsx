@@ -116,6 +116,28 @@ const cleaningDate = new Intl.DateTimeFormat('ca-ES', {
 });
 const cleaningArea = new Intl.NumberFormat('ca-ES', { maximumFractionDigits: 1 });
 
+function RoborockHistory({ state }) {
+  const cleanings = state.recentCleanings ?? (state.lastCleaning ? [state.lastCleaning] : []);
+
+  return (
+    <section className="roborock-history" aria-labelledby="roborock-history-title">
+      <h3 id="roborock-history-title">Últimes neteges</h3>
+      {cleanings.length > 0 && (
+        <ol>
+          {cleanings.map(({ startedAt, area }) => (
+            <li key={startedAt}>
+              <time dateTime={startedAt}>{cleaningDate.format(new Date(startedAt))}</time>
+              {typeof area === 'number' && <span>{cleaningArea.format(area)} m²</span>}
+            </li>
+          ))}
+        </ol>
+      )}
+      {state.historyError && <p className="agenda-message">No s’ha pogut consultar l’historial de neteges.</p>}
+      {!state.historyError && cleanings.length === 0 && <p className="agenda-message">Encara no hi ha cap neteja registrada.</p>}
+    </section>
+  );
+}
+
 function RoborockCard() {
   const [state, setState] = useState(null);
   const [error, setError] = useState('');
@@ -124,7 +146,7 @@ function RoborockCard() {
 
   useEffect(() => {
     const controller = new AbortController();
-    api(roborockPath, { signal: controller.signal })
+    api(`${roborockPath}?history=1`, { signal: controller.signal })
       .then((result) => {
         if (!controller.signal.aborted) setState(result);
       })
@@ -171,17 +193,7 @@ function RoborockCard() {
             <p className="home-device-state" data-online={state.online}>{getRoborockStatus(state)}</p>
           </div>
         )}
-        {state?.lastCleaning && (
-          <dl className="roborock-last-cleaning">
-            <dt>Última neteja</dt>
-            <dd>
-              <time dateTime={state.lastCleaning.startedAt}>
-                {cleaningDate.format(new Date(state.lastCleaning.startedAt))}
-              </time>
-              {typeof state.lastCleaning.area === 'number' && ` · ${cleaningArea.format(state.lastCleaning.area)} m²`}
-            </dd>
-          </dl>
-        )}
+        {state && <RoborockHistory state={state} />}
         {error && <p className="agenda-message">{error}</p>}
       </div>
       {busy && !state && <p className="agenda-message" role="status">S’està consultant el Roborock…</p>}

@@ -32,6 +32,8 @@ async def connect():
         "user": rriot.u,
         "secret": rriot.s,
         "signingKey": rriot.h,
+        "mqttBroker": rriot.r.m.rstrip("/"),
+        "mqttKey": rriot.k,
     }
 
 

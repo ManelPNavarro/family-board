@@ -147,7 +147,10 @@ The Casa page can control one light through Tuya's cloud API.
 
 The protected `/api/home/roborock` endpoint checks whether the Roborock cloud
 can report the Q7 L5+ status. It returns the available battery level, online
-flag, and provider state code. The cloud response is a snapshot.
+flag, and provider state code. The cloud response is a snapshot. Casa also
+queries the device via TLS MQTT for its three most recent cleaning records.
+For an older session created before cleaning history was added, repeat the setup
+below and replace the existing secret.
 
 1. On a Mac with Python 3.11 or newer, run these commands from the repository.
    Enter the Roborock app email and the verification code sent by Roborock.
