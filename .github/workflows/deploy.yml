@@ -35,7 +35,6 @@ jobs:
         if: github.ref == 'refs/heads/main' && vars.D1_DATABASE_ID != ''
         run: |
           npm run deploy:config
-          npx --no-install wrangler d1 migrations apply DB --remote --config .wrangler.deploy.json
           if [[ -n "$GOOGLE_CALENDAR_ID" || -n "$GOOGLE_CALENDAR_SERVICE_ACCOUNT" || -n "$WEATHER_LOCATION" || -n "$TUYA_LIGHT" || -n "$ROBOROCK_SESSION" ]]; then
             secrets_file="$(mktemp "$RUNNER_TEMP/family-board-secrets.XXXXXX")"
             trap 'rm -f "$secrets_file"' EXIT

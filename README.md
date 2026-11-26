@@ -28,7 +28,7 @@ endpoint checks the D1 connection.
    set `D1_DATABASE_ID` to the database ID. In
    [GitHub Actions secrets](https://github.com/ManelPNavarro/family-board/settings/secrets/actions),
    add `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`. Use **Account Settings
-   → Read** and **Workers Scripts → Edit**, plus **D1 → Edit** for migrations, scoped to the Family Board account.
+   → Read** and **Workers Scripts → Edit**, scoped to the Family Board account.
    Once the Worker exists, you can scope edit access to that Worker.
 3. Run the **Family Board** workflow on `main` from GitHub Actions. This first
    deployment registers the Worker with its URL and previews disabled.
@@ -93,10 +93,9 @@ Open `/#compra` to go directly to the shopping list. Older `/compra/`
 shortcuts redirect to the main app. Everyone authorized to use
 Family Board shares the same list, stored in the Worker's D1 database.
 
-GitHub Actions applies pending migrations in `migrations/` before deploying.
-The Cloudflare API token needs **D1 → Edit** access for the Family Board
-account. To apply them manually, sign in to Wrangler with D1 access and
-generate the deployment configuration with `npm run deploy:config`, then run:
+For a new database, apply the migrations in `migrations/` before deploying
+the version that needs them. Sign in to Wrangler with D1 access and generate
+the deployment configuration with `npm run deploy:config`, then run:
 
 ```sh
 npx wrangler d1 migrations apply DB --remote --config .wrangler.deploy.json
